@@ -11,6 +11,8 @@ import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -57,6 +59,11 @@ public class SkillListener implements Listener {
         return expectedSkillId.equals(skillId);
     }
 
+    private boolean isAnySkillItem(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return false;
+        return item.getItemMeta().getPersistentDataContainer().has(skillIdKey, PersistentDataType.STRING);
+    }
+
     private boolean checkCooldown(Player player, String skillId) {
         String key = player.getUniqueId().toString() + ":" + skillId;
         long now = System.currentTimeMillis();
@@ -96,13 +103,33 @@ public class SkillListener implements Listener {
         return true;
     }
 
-    // APOSTLE OF THE SUN SKILLS
+    //<editor-fold desc="Vanilla Behavior Cancellers">
+    @EventHandler
+    public void onBlockPlace(BlockPlaceEvent event) {
+        if (isAnySkillItem(event.getItemInHand())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onSkillSwordAttack(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Player player)) return;
+        ItemStack itemInHand = player.getInventory().getItemInMainHand();
+        if (isSkillItem(itemInHand, "suns-spear")) {
+            event.setCancelled(true);
+        }
+    }
+    //</editor-fold>
+
+
+    //<editor-fold desc="Skill Event Handlers">
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getAction() != Action.RIGHT_CLICK_AIR && event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
 
         Player player = event.getPlayer();
         ItemStack item = event.getItem();
+        if (item == null) return;
 
         if (isSkillItem(item, "solar-flare")) {
             handleSolarFlare(player);
@@ -238,8 +265,6 @@ public class SkillListener implements Listener {
         }
     }
 
-    // APOSTLE OF THE MOON SKILLS
-
     private void handleMoonsChain(Player player) {
         if (!canUseSkill(player, TeamType.APOSTLE_OF_MOON) || !checkCooldown(player, "moons-chain")) return;
 
@@ -327,4 +352,5 @@ public class SkillListener implements Listener {
             }
         }
     }
+    //</editor-fold>
 }
