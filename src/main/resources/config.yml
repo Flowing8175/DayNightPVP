@@ -1,0 +1,19 @@
+# Grace period duration in minutes
+grace-period-minutes: 15
+
+# Survivor Locator Settings
+survivor-locator:
+  # Interval in minutes to check for survivors
+  check-interval-minutes: 2
+  # Number of players remaining to trigger the location broadcast
+  trigger-player-count: 3
+
+# Skill Cooldowns (in seconds)
+cooldowns:
+  solar-flare: 30
+  suns-spear: 20
+  afterglow: 30
+  mirror-dash: 60
+  moons-chain: 45
+  shadow-wings: 30
+  moon-smash: 40

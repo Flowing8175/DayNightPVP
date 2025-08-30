@@ -1,0 +1,27 @@
+name: DayNightWarfare
+version: 1.0.0
+main: com.daynightwarfare.DayNightPlugin
+api-version: '1.20'
+author: Jules
+description: A team-based PvP game mode with day/night skills.
+commands:
+  game:
+    description: Main command for the Day & Night Warfare game.
+    usage: /<command> [start|stop|grace]
+    permission: daynight.use
+permissions:
+  daynight.use:
+    description: Allows usage of basic game commands.
+    default: true
+  daynight.admin.start:
+    description: Allows starting the game.
+    default: op
+  daynight.admin.stop:
+    description: Allows stopping the game.
+    default: op
+  daynight.admin.grace:
+    description: Allows managing the grace period.
+    default: op
+  daynight.admin.give:
+    description: Allows giving skill items to players.
+    default: op
