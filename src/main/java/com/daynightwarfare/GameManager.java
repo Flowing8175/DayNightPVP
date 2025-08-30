@@ -252,7 +252,7 @@ public class GameManager {
 
         Title title = Title.title(
                 MiniMessage.miniMessage().deserialize("<bold><red>무적 시간이 종료되었습니다!</red></bold>"),
-                MiniMessage.miniMessage().deserialize("<yellow>전투 시작!</yellow>")
+                MiniMessage.miniMessage().deserialize("<yellow>FIGHT!</yellow>")
         );
 
         for (UUID playerUUID : getPlayerTeams().keySet()) {

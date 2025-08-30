@@ -169,7 +169,8 @@ public class SkillListener implements Listener {
     private void handleSunsSpear(Player player) {
         if (!canUseSkill(player, TeamType.APOSTLE_OF_LIGHT) || !checkCooldown(player, "suns-spear")) return;
 
-        Trident spear = player.launchProjectile(Trident.class, player.getEyeLocation().getDirection());
+        Vector velocity = player.getEyeLocation().getDirection().multiply(3);
+        Trident spear = player.launchProjectile(Trident.class, velocity);
         spear.setGlowing(true);
         spear.getPersistentDataContainer().set(sunsSpearKey, PersistentDataType.STRING, player.getUniqueId().toString());
 
