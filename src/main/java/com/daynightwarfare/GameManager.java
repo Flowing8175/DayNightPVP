@@ -1,11 +1,15 @@
 package com.daynightwarfare;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -96,8 +100,8 @@ public class GameManager {
             TeamType team = (i % 2 == 0) ? TeamType.APOSTLE_OF_LIGHT : TeamType.APOSTLE_OF_MOON;
             setPlayerTeam(player, team);
             alivePlayers.add(player.getUniqueId());
-            String teamColor = team == TeamType.APOSTLE_OF_LIGHT ? "<yellow>" : "<aqua>";
-            player.sendMessage(MiniMessage.miniMessage().deserialize("<gray>당신은 " + teamColor + team.getDisplayName() + "</color> 팀입니다.</gray>"));
+            String teamColor = team == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua";
+            player.sendMessage(MiniMessage.miniMessage().deserialize("<gray>당신은 <" + teamColor + ">" + team.getDisplayName() + "</" + teamColor + "> 팀입니다.</gray>"));
         }
     }
 
@@ -277,5 +281,64 @@ public class GameManager {
                 endGracePeriod();
             }
         }
+    }
+
+    public void supplySkillItems() {
+        String[] sunSkills = {"solar-flare", "suns-spear", "afterglow", "mirror-dash"};
+        String[] moonSkills = {"moons-chain", "shadow-wings", "moon-smash"};
+
+        for (UUID playerUUID : playerTeams.keySet()) {
+            Player player = Bukkit.getPlayer(playerUUID);
+            if (player == null) continue;
+
+            player.getInventory().clear();
+            TeamType team = getPlayerTeam(player);
+            String[] skillsToGive = (team == TeamType.APOSTLE_OF_LIGHT) ? sunSkills : moonSkills;
+
+            for (String skillId : skillsToGive) {
+                ItemStack skillItem = createSkillItem(skillId);
+                if (skillItem != null) {
+                    player.getInventory().addItem(skillItem);
+                }
+            }
+        }
+    }
+
+    private ItemStack createSkillItem(String skillId) {
+        Material material;
+        String name;
+        List<String> lore = new ArrayList<>();
+        DayNightPlugin plugin = DayNightPlugin.getInstance();
+
+        switch (skillId) {
+            case "solar-flare":
+                material = Material.GLOWSTONE_DUST; name = "<gold>Solar Flare</gold>"; lore.add("<gray>Right-click to unleash a blinding light.</gray>"); break;
+            case "suns-spear":
+                material = Material.GOLDEN_SWORD; name = "<gold>Sun's Spear</gold>"; lore.add("<gray>Right-click to throw a spear of light.</gray>"); break;
+            case "afterglow":
+                material = Material.TORCH; name = "<gold>Afterglow</gold>"; lore.add("<gray>Right-click to burn nearby enemies.</gray>"); break;
+            case "mirror-dash":
+                material = Material.GLASS_PANE; name = "<gold>Mirror Dash</gold>"; lore.add("<gray>Right-click to dash behind an enemy.</gray>"); break;
+            case "moons-chain":
+                material = Material.FLOWER_BANNER_PATTERN; name = "<aqua>Moon's Chain</aqua>"; lore.add("<gray>Right-click to chain nearby enemies.</gray>"); break;
+            case "shadow-wings":
+                material = Material.FEATHER; name = "<aqua>Shadow Wings</aqua>"; lore.add("<gray>Sneak for 2s to gain temporary flight.</gray>"); break;
+            case "moon-smash":
+                material = Material.NETHER_STAR; name = "<aqua>Moon Smash</aqua>"; lore.add("<gray>Sneak while gliding to smash the ground.</gray>"); break;
+            default:
+                return null;
+        }
+
+        ItemStack item = new ItemStack(material);
+        ItemMeta meta = item.getItemMeta();
+        meta.displayName(MiniMessage.miniMessage().deserialize(name).decoration(TextDecoration.ITALIC, false));
+        List<Component> loreComponents = lore.stream()
+                .map(line -> MiniMessage.miniMessage().deserialize(line).decoration(TextDecoration.ITALIC, false))
+                .collect(Collectors.toList());
+        meta.lore(loreComponents);
+        NamespacedKey key = new NamespacedKey(plugin, "skill_id");
+        meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, skillId);
+        item.setItemMeta(meta);
+        return item;
     }
 }

@@ -22,6 +22,3 @@ permissions:
   daynight.admin.grace:
     description: Allows managing the grace period.
     default: op
-  daynight.admin.give:
-    description: Allows giving skill items to players.
-    default: op
