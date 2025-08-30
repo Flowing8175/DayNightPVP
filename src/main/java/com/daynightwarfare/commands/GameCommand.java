@@ -3,6 +3,7 @@ package com.daynightwarfare.commands;
 import com.daynightwarfare.DayNightPlugin;
 import com.daynightwarfare.GameManager;
 import com.daynightwarfare.GameState;
+import com.daynightwarfare.TeamType;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
@@ -10,7 +11,6 @@ import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import com.daynightwarfare.TeamType;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -36,7 +36,7 @@ public class GameCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(miniMessage.deserialize("<red>Usage: /game <start|stop|grace|team></red>"));
+            sender.sendMessage(miniMessage.deserialize("<red>사용법: /game <start|stop|grace|team></red>"));
             return true;
         }
 
@@ -56,7 +56,7 @@ public class GameCommand implements CommandExecutor, TabCompleter {
                 handleTeam(sender, args);
                 break;
             default:
-                sender.sendMessage(miniMessage.deserialize("<red>Unknown subcommand. Usage: /game <start|stop|grace|team></red>"));
+                sender.sendMessage(miniMessage.deserialize("<red>알 수 없는 명령어입니다. 사용법: /game <start|stop|grace|team></red>"));
                 break;
         }
 
@@ -65,11 +65,11 @@ public class GameCommand implements CommandExecutor, TabCompleter {
 
     private void handleStart(CommandSender sender) {
         if (!sender.hasPermission("daynight.admin.start")) {
-            sender.sendMessage(miniMessage.deserialize("<red>You do not have permission to start the game.</red>"));
+            sender.sendMessage(miniMessage.deserialize("<red>게임을 시작할 권한이 없습니다.</red>"));
             return;
         }
         if (gameManager.getState() != GameState.WAITING) {
-            sender.sendMessage(miniMessage.deserialize("<red>The game is already in progress or starting.</red>"));
+            sender.sendMessage(miniMessage.deserialize("<red>게임이 이미 진행 중이거나 시작 중입니다.</red>"));
             return;
         }
         gameManager.setState(GameState.COUNTDOWN);
@@ -98,24 +98,24 @@ public class GameCommand implements CommandExecutor, TabCompleter {
 
     private void handleStop(CommandSender sender) {
         if (!sender.hasPermission("daynight.admin.stop")) {
-            sender.sendMessage(miniMessage.deserialize("<red>You do not have permission to stop the game.</red>"));
+            sender.sendMessage(miniMessage.deserialize("<red>게임을 중지할 권한이 없습니다.</red>"));
             return;
         }
         if (!gameManager.isGameInProgress()) {
-            sender.sendMessage(miniMessage.deserialize("<red>There is no game in progress to stop.</red>"));
+            sender.sendMessage(miniMessage.deserialize("<red>중지할 게임이 없습니다.</red>"));
             return;
         }
         gameManager.resetGame();
-        sender.sendMessage(miniMessage.deserialize("<green>Game has been forcibly stopped.</green>"));
+        sender.sendMessage(miniMessage.deserialize("<green>게임이 강제 종료되었습니다.</green>"));
     }
 
     private void handleGrace(CommandSender sender, String[] args) {
         if (!sender.hasPermission("daynight.admin.grace")) {
-            sender.sendMessage(miniMessage.deserialize("<red>You do not have permission to modify the grace period.</red>"));
+            sender.sendMessage(miniMessage.deserialize("<red>무적 시간을 변경할 권한이 없습니다.</red>"));
             return;
         }
         if (args.length < 2) {
-            sender.sendMessage(miniMessage.deserialize("<red>Usage: /game grace <add|subtract|end> [minutes]</red>"));
+            sender.sendMessage(miniMessage.deserialize("<red>사용법: /game grace <add|subtract|end> [분]</red>"));
             return;
         }
         String graceAction = args[1].toLowerCase();
@@ -124,93 +124,93 @@ public class GameCommand implements CommandExecutor, TabCompleter {
             try {
                 minutes = Integer.parseInt(args[2]);
                 if (minutes <= 0) {
-                    sender.sendMessage(miniMessage.deserialize("<red>Minutes must be a positive number.</red>"));
+                    sender.sendMessage(miniMessage.deserialize("<red>분은 양수여야 합니다.</red>"));
                     return;
                 }
             } catch (NumberFormatException e) {
-                sender.sendMessage(miniMessage.deserialize("<red>Invalid number of minutes.</red>"));
+                sender.sendMessage(miniMessage.deserialize("<red>올바르지 않은 숫자입니다.</red>"));
                 return;
             }
         }
         switch (graceAction) {
             case "add":
                 if (minutes == 0) {
-                    sender.sendMessage(miniMessage.deserialize("<red>Usage: /game grace add <minutes></red>"));
+                    sender.sendMessage(miniMessage.deserialize("<red>사용법: /game grace add <분></red>"));
                     return;
                 }
                 if (!gameManager.isGracePeriodActive()) {
                     gameManager.startGracePeriod(minutes);
-                    sender.sendMessage(miniMessage.deserialize("<green>Grace period started for " + minutes + " minutes.</green>"));
+                    sender.sendMessage(miniMessage.deserialize("<green>무적 시간이 " + minutes + "분으로 시작되었습니다.</green>"));
                 } else {
                     gameManager.addGracePeriodTime(minutes);
-                    sender.sendMessage(miniMessage.deserialize("<green>Added " + minutes + " minutes to the grace period.</green>"));
+                    sender.sendMessage(miniMessage.deserialize("<green>무적 시간이 " + minutes + "분 추가되었습니다.</green>"));
                 }
                 break;
             case "subtract":
                  if (minutes == 0) {
-                    sender.sendMessage(miniMessage.deserialize("<red>Usage: /game grace subtract <minutes></red>"));
+                    sender.sendMessage(miniMessage.deserialize("<red>사용법: /game grace subtract <분></red>"));
                     return;
                 }
                 if (!gameManager.isGracePeriodActive()) {
-                    sender.sendMessage(miniMessage.deserialize("<red>Cannot subtract time, grace period is not active.</red>"));
+                    sender.sendMessage(miniMessage.deserialize("<red>무적 시간이 활성화되어 있지 않아 시간을 뺄 수 없습니다.</red>"));
                     return;
                 }
                 gameManager.subtractGracePeriodTime(minutes);
-                sender.sendMessage(miniMessage.deserialize("<green>Subtracted " + minutes + " minutes from the grace period.</green>"));
+                sender.sendMessage(miniMessage.deserialize("<green>무적 시간이 " + minutes + "분 감소되었습니다.</green>"));
                 break;
             case "end":
                 if (!gameManager.isGracePeriodActive()) {
-                    sender.sendMessage(miniMessage.deserialize("<red>Grace period is not active.</red>"));
+                    sender.sendMessage(miniMessage.deserialize("<red>무적 시간이 활성화되어 있지 않습니다.</red>"));
                     return;
                 }
                 gameManager.endGracePeriod();
-                sender.sendMessage(miniMessage.deserialize("<green>Grace period has been ended.</green>"));
+                sender.sendMessage(miniMessage.deserialize("<green>무적 시간이 종료되었습니다.</green>"));
                 break;
             default:
-                sender.sendMessage(miniMessage.deserialize("<red>Unknown action. Usage: /game grace <add|subtract|end></red>"));
+                sender.sendMessage(miniMessage.deserialize("<red>알 수 없는 행동입니다. 사용법: /game grace <add|subtract|end></red>"));
                 break;
         }
     }
 
     private void handleTeam(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("daynight.admin.team")) { // Add this permission to plugin.yml
-            sender.sendMessage(miniMessage.deserialize("<red>You do not have permission to manage teams.</red>"));
+        if (!sender.hasPermission("daynight.admin.team")) {
+            sender.sendMessage(miniMessage.deserialize("<red>팀을 관리할 권한이 없습니다.</red>"));
             return;
         }
         if (args.length < 3) {
-            sender.sendMessage(miniMessage.deserialize("<red>Usage: /game team <pin|unpin> <player> [team]</red>"));
+            sender.sendMessage(miniMessage.deserialize("<red>사용법: /game team <pin|unpin> <플레이어> [팀]</red>"));
             return;
         }
 
         String action = args[1].toLowerCase();
         Player target = Bukkit.getPlayer(args[2]);
         if (target == null) {
-            sender.sendMessage(miniMessage.deserialize("<red>Player not found.</red>"));
+            sender.sendMessage(miniMessage.deserialize("<red>플레이어를 찾을 수 없습니다.</red>"));
             return;
         }
 
         if (action.equals("pin")) {
             if (args.length < 4) {
-                sender.sendMessage(miniMessage.deserialize("<red>Usage: /game team pin <player> <Light|Moon></red>"));
+                sender.sendMessage(miniMessage.deserialize("<red>사용법: /game team pin <플레이어> <Light|Moon></red>"));
                 return;
             }
             String teamName = args[3].toLowerCase();
             TeamType team;
             if (teamName.startsWith("l")) {
                 team = TeamType.APOSTLE_OF_LIGHT;
-            } else if (teamName.startsWith("m") || teamName.startsWith("s")) { // Moon or Shadow
+            } else if (teamName.startsWith("m") || teamName.startsWith("s")) {
                 team = TeamType.APOSTLE_OF_MOON;
             } else {
-                sender.sendMessage(miniMessage.deserialize("<red>Invalid team. Use 'Light' or 'Moon'.</red>"));
+                sender.sendMessage(miniMessage.deserialize("<red>올바르지 않은 팀입니다. 'Light' 또는 'Moon'을 사용하세요.</red>"));
                 return;
             }
             gameManager.setPlayerPin(target.getUniqueId(), team);
-            sender.sendMessage(miniMessage.deserialize("<green>Pinned " + target.getName() + " to the " + team.getDisplayName() + " team.</green>"));
+            sender.sendMessage(miniMessage.deserialize("<green>" + target.getName() + "님을 " + team.getDisplayName() + " 팀에 고정했습니다.</green>"));
         } else if (action.equals("unpin")) {
             gameManager.setPlayerPin(target.getUniqueId(), null);
-            sender.sendMessage(miniMessage.deserialize("<green>Unpinned " + target.getName() + ".</green>"));
+            sender.sendMessage(miniMessage.deserialize("<green>" + target.getName() + "님의 고정을 해제했습니다.</green>"));
         } else {
-            sender.sendMessage(miniMessage.deserialize("<red>Usage: /game team <pin|unpin> <player> [team]</red>"));
+            sender.sendMessage(miniMessage.deserialize("<red>사용법: /game team <pin|unpin> <플레이어> [팀]</red>"));
         }
     }
 

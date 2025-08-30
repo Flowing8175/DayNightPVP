@@ -252,7 +252,7 @@ public class GameManager {
 
         Title title = Title.title(
                 MiniMessage.miniMessage().deserialize("<bold><red>무적 시간이 종료되었습니다!</red></bold>"),
-                MiniMessage.miniMessage().deserialize("<yellow>FIGHT!</yellow>")
+                MiniMessage.miniMessage().deserialize("<yellow>전투 시작!</yellow>")
         );
 
         for (UUID playerUUID : getPlayerTeams().keySet()) {
@@ -347,17 +347,17 @@ public class GameManager {
 
         switch (skillId) {
             case "solar-flare":
-                material = Material.GLOWSTONE_DUST; name = "<gold>Solar Flare</gold>"; lore.add("<gray>Right-click to unleash a blinding light.</gray>"); break;
+                material = Material.GLOWSTONE_DUST; name = "<gold>태양 섬광</gold>"; lore.add("<gray>우클릭하여 눈을 멀게 하는 빛을 방출합니다.</gray>"); break;
             case "suns-spear":
-                material = Material.GOLDEN_SWORD; name = "<gold>Sun's Spear</gold>"; lore.add("<gray>Right-click to throw a spear of light.</gray>"); break;
+                material = Material.GOLDEN_SWORD; name = "<gold>태양의 창</gold>"; lore.add("<gray>우클릭하여 빛의 창을 던집니다.</gray>"); break;
             case "afterglow":
-                material = Material.TORCH; name = "<gold>Afterglow</gold>"; lore.add("<gray>Right-click to burn nearby enemies.</gray>"); break;
+                material = Material.TORCH; name = "<gold>잔광</gold>"; lore.add("<gray>우클릭하여 주변의 적을 불태웁니다.</gray>"); break;
             case "mirror-dash":
-                material = Material.GLASS_PANE; name = "<gold>Mirror Dash</gold>"; lore.add("<gray>Right-click to dash behind an enemy.</gray>"); break;
+                material = Material.GLASS_PANE; name = "<gold>거울 잔상</gold>"; lore.add("<gray>우클릭하여 적의 뒤로 돌진합니다.</gray>"); break;
             case "moons-chain":
-                material = Material.FLOWER_BANNER_PATTERN; name = "<aqua>Moon's Chain</aqua>"; lore.add("<gray>Right-click to chain nearby enemies.</gray>"); break;
+                material = Material.FLOWER_BANNER_PATTERN; name = "<aqua>달의 사슬</aqua>"; lore.add("<gray>우클릭하여 주변의 적을 속박합니다.</gray>"); break;
             case "moon-smash":
-                material = Material.NETHER_STAR; name = "<aqua>Moon Smash</aqua>"; lore.add("<gray>Sneak while gliding to smash the ground.</gray>"); break;
+                material = Material.NETHER_STAR; name = "<aqua>월광 분쇄</aqua>"; lore.add("<gray>활공 중 웅크려 땅을 내리칩니다.</gray>"); break;
             default:
                 return null;
         }
