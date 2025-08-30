@@ -3,8 +3,7 @@ package com.daynightwarfare.listeners;
 import com.daynightwarfare.DayNightPlugin;
 import com.daynightwarfare.GameManager;
 import com.daynightwarfare.TeamType;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
@@ -40,6 +39,7 @@ public class SkillListener implements Listener {
     private final NamespacedKey skillIdKey;
     private final NamespacedKey moonSmashKey;
     private final NamespacedKey sunsSpearKey;
+    private final MiniMessage miniMessage;
 
 
     public SkillListener(DayNightPlugin plugin) {
@@ -48,6 +48,7 @@ public class SkillListener implements Listener {
         this.skillIdKey = new NamespacedKey(plugin, "skill_id");
         this.moonSmashKey = new NamespacedKey(plugin, "moon_smash_active");
         this.sunsSpearKey = new NamespacedKey(plugin, "suns_spear_id");
+        this.miniMessage = MiniMessage.miniMessage();
     }
 
     private boolean isSkillItem(ItemStack item, String expectedSkillId) {
@@ -65,7 +66,7 @@ public class SkillListener implements Listener {
             long expires = cooldowns.get(key);
             if (now < expires) {
                 long timeLeft = (expires - now) / 1000;
-                player.sendMessage(Component.text("해당 스킬은 " + timeLeft + "초 후에 사용할 수 있습니다.", NamedTextColor.RED));
+                player.sendMessage(miniMessage.deserialize("<red>해당 스킬은 " + timeLeft + "초 후에 사용할 수 있습니다.</red>"));
                 return false;
             }
         }
@@ -80,15 +81,16 @@ public class SkillListener implements Listener {
 
     private boolean canUseSkill(Player player, TeamType requiredTeam) {
         if (!gameManager.isGameInProgress() || gameManager.isGracePeriodActive()) {
-            player.sendMessage(Component.text("지금은 스킬을 사용할 수 없습니다.", NamedTextColor.RED));
+            player.sendMessage(miniMessage.deserialize("<red>지금은 스킬을 사용할 수 없습니다.</red>"));
             return false;
         }
         if (gameManager.getPlayerTeam(player) != requiredTeam) {
-            player.sendMessage(Component.text("이 스킬은 " + requiredTeam.getStyledDisplayName() + " 팀만 사용할 수 있습니다.", NamedTextColor.RED));
+            String teamColor = requiredTeam == TeamType.APOSTLE_OF_LIGHT ? "<yellow>" : "<aqua>";
+            player.sendMessage(miniMessage.deserialize("<red>이 스킬은 " + teamColor + requiredTeam.getDisplayName() + "</color> 팀만 사용할 수 있습니다.</red>"));
             return false;
         }
         if (skillDisabledPlayers.contains(player.getUniqueId())) {
-            player.sendMessage(Component.text("스킬이 비활성화되었습니다.", NamedTextColor.RED));
+            player.sendMessage(miniMessage.deserialize("<red>스킬이 비활성화되었습니다.</red>"));
             return false;
         }
         return true;
@@ -121,13 +123,15 @@ public class SkillListener implements Listener {
         for (Entity entity : player.getNearbyEntities(15, 15, 15)) {
             if (!(entity instanceof LivingEntity target)) continue;
 
-            TeamType targetTeam = gameManager.getPlayerTeam((Player) target);
-            if (targetTeam != null && targetTeam != TeamType.APOSTLE_OF_LIGHT) { // Enemy
-                target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20, 0));
-                target.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 40, 1));
-            } else if (targetTeam == TeamType.APOSTLE_OF_LIGHT) { // Ally
-                target.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 80, 0));
-                // Attack speed boost would require attribute modifiers, which is more complex. Sticking to potion effects.
+            Player targetPlayer = (entity instanceof Player) ? (Player) entity : null;
+            if (targetPlayer != null) {
+                TeamType targetTeam = gameManager.getPlayerTeam(targetPlayer);
+                if (targetTeam != null && targetTeam != TeamType.APOSTLE_OF_LIGHT) { // Enemy
+                    target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20, 0));
+                    target.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 40, 1));
+                } else if (targetTeam == TeamType.APOSTLE_OF_LIGHT) { // Ally
+                    target.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 80, 0));
+                }
             }
         }
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_TWINKLE, 1f, 1f);
@@ -188,9 +192,9 @@ public class SkillListener implements Listener {
                 }
                 player.getWorld().spawnParticle(Particle.FLAME, player.getLocation().add(0, 1, 0), 20, 0.5, 0.5, 0.5, 0.01);
                 for (Entity entity : player.getNearbyEntities(8, 8, 8)) {
-                    if (entity instanceof LivingEntity target && entity != player) {
-                         if (gameManager.getPlayerTeam((Player) target) != TeamType.APOSTLE_OF_LIGHT) {
-                            target.damage(1, player);
+                    if (entity instanceof Player targetPlayer && entity != player) {
+                         if (gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_LIGHT) {
+                            targetPlayer.damage(1, player);
                          }
                     }
                 }
@@ -209,12 +213,12 @@ public class SkillListener implements Listener {
         double bestAngle = 45.0;
 
         for (Entity entity : player.getNearbyEntities(30, 30, 30)) {
-            if (entity instanceof LivingEntity target && entity != player && gameManager.getPlayerTeam((Player)target) != TeamType.APOSTLE_OF_LIGHT) {
-                Vector targetDirection = target.getEyeLocation().subtract(player.getEyeLocation()).toVector().normalize();
+            if (entity instanceof Player targetPlayer && entity != player && gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_LIGHT) {
+                Vector targetDirection = targetPlayer.getEyeLocation().subtract(player.getEyeLocation()).toVector().normalize();
                 double angle = Math.toDegrees(Math.acos(playerDirection.dot(targetDirection)));
                 if (angle < bestAngle) {
                     bestAngle = angle;
-                    bestTarget = target;
+                    bestTarget = targetPlayer;
                 }
             }
         }
@@ -223,15 +227,14 @@ public class SkillListener implements Listener {
             Vector targetLookDir = bestTarget.getLocation().getDirection().normalize();
             Location behind = bestTarget.getLocation().subtract(targetLookDir.multiply(3));
 
-            // Basic safety check
             if (behind.getBlock().isPassable() && behind.clone().add(0, 1, 0).getBlock().isPassable()) {
                 player.teleport(behind);
                 setCooldown(player, "mirror-dash");
             } else {
-                 player.sendMessage(Component.text("대상을 추적할 수 없습니다.", NamedTextColor.RED));
+                 player.sendMessage(miniMessage.deserialize("<red>대상을 추적할 수 없습니다.</red>"));
             }
         } else {
-            player.sendMessage(Component.text("시야에 대상이 없습니다.", NamedTextColor.RED));
+            player.sendMessage(miniMessage.deserialize("<red>시야에 대상이 없습니다.</red>"));
         }
     }
 
@@ -258,17 +261,15 @@ public class SkillListener implements Listener {
 
         if (event.isSneaking()) {
             sneakStartTimes.put(uuid, System.currentTimeMillis());
-            // Moon Smash Logic
             if (player.isGliding() && canUseSkill(player, TeamType.APOSTLE_OF_MOON) && checkCooldown(player, "moon-smash")) {
                  player.getPersistentDataContainer().set(moonSmashKey, PersistentDataType.BYTE, (byte)1);
                  player.setVelocity(new Vector(0, -10, 0));
                  setCooldown(player, "moon-smash");
             }
-        } else { // Not sneaking anymore
+        } else {
             Long startTime = sneakStartTimes.remove(uuid);
             if (startTime == null) return;
 
-            // Shadow Wings Logic
             if ((System.currentTimeMillis() - startTime) >= 2000) {
                 if (canUseSkill(player, TeamType.APOSTLE_OF_MOON) && checkCooldown(player, "shadow-wings")) {
                     ItemStack chestplate = player.getInventory().getChestplate();
@@ -303,12 +304,10 @@ public class SkillListener implements Listener {
     public void onEntityDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
 
-        // Restore chestplate on fall damage
         if (event.getCause() == EntityDamageEvent.DamageCause.FALL && originalChestplates.containsKey(player.getUniqueId())) {
              player.getInventory().setChestplate(originalChestplates.remove(player.getUniqueId()));
         }
 
-        // Moon Smash damage
         if (event.getCause() == EntityDamageEvent.DamageCause.FALL) {
             if (player.getPersistentDataContainer().has(moonSmashKey, PersistentDataType.BYTE)) {
                 event.setCancelled(true);
@@ -319,10 +318,10 @@ public class SkillListener implements Listener {
                 player.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, loc, 5);
 
                 for (Entity entity : player.getNearbyEntities(5, 5, 5)) {
-                    if (entity instanceof LivingEntity target && gameManager.getPlayerTeam((Player)target) != TeamType.APOSTLE_OF_MOON) {
-                        target.damage(event.getDamage() * 0.5, player); // Half of original fall damage
-                        Vector knockback = target.getLocation().toVector().subtract(loc.toVector()).normalize().multiply(1.5);
-                        target.setVelocity(knockback);
+                    if (entity instanceof Player targetPlayer && gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_MOON) {
+                        targetPlayer.damage(event.getDamage() * 0.5, player);
+                        Vector knockback = targetPlayer.getLocation().toVector().subtract(loc.toVector()).normalize().multiply(1.5);
+                        targetPlayer.setVelocity(knockback);
                     }
                 }
             }

@@ -1,8 +1,7 @@
 package com.daynightwarfare;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
 import org.bukkit.*;
 import org.bukkit.block.Block;
@@ -82,10 +81,8 @@ public class GameManager {
         playerTeams.clear();
         alivePlayers.clear();
 
-        // TODO: Add logic to clear potion effects and reset other player states.
-
         setState(GameState.WAITING);
-        Bukkit.broadcast(Component.text("게임이 강제 종료되어 초기화되었습니다.", NamedTextColor.RED));
+        Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<red>게임이 강제 종료되어 초기화되었습니다.</red>"));
     }
 
     public void assignTeams() {
@@ -99,7 +96,8 @@ public class GameManager {
             TeamType team = (i % 2 == 0) ? TeamType.APOSTLE_OF_LIGHT : TeamType.APOSTLE_OF_MOON;
             setPlayerTeam(player, team);
             alivePlayers.add(player.getUniqueId());
-            player.sendMessage(Component.text("당신은 ", NamedTextColor.GRAY).append(team.getStyledDisplayName()).append(Component.text(" 팀입니다.")));
+            String teamColor = team == TeamType.APOSTLE_OF_LIGHT ? "<yellow>" : "<aqua>";
+            player.sendMessage(MiniMessage.miniMessage().deserialize("<gray>당신은 " + teamColor + team.getDisplayName() + "</color> 팀입니다.</gray>"));
         }
     }
 
@@ -163,6 +161,7 @@ public class GameManager {
     public void startGracePeriod(long minutes) {
         setState(GameState.GRACE_PERIOD);
         this.gracePeriodEndTime = System.currentTimeMillis() + (minutes * 60 * 1000);
+        Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<aqua>무적 시간이 " + minutes + "분으로 설정되었습니다.</aqua>"));
 
         this.gracePeriodTask = new BukkitRunnable() {
             @Override
@@ -175,18 +174,15 @@ public class GameManager {
 
                 long remainingSeconds = remainingMillis / 1000;
                 String formattedTime = formatTime(remainingSeconds);
-                Component actionBarMessage = Component.text("무적 시간 : ", NamedTextColor.AQUA)
-                        .append(Component.text(formattedTime, NamedTextColor.YELLOW));
+                Component actionBarMessage = MiniMessage.miniMessage().deserialize("<aqua>무적 시간 : <yellow>" + formattedTime + "</yellow></aqua>");
 
                 for (Player player : Bukkit.getOnlinePlayers()) {
                     player.sendActionBar(actionBarMessage);
                 }
 
                 if (shouldAnnounce(remainingSeconds)) {
-                    Component broadcastMessage = Component.text("무적 시간 ", NamedTextColor.AQUA, TextDecoration.BOLD)
-                            .append(Component.text("종료까지 ", NamedTextColor.YELLOW))
-                            .append(Component.text(formattedTime, NamedTextColor.AQUA))
-                            .append(Component.text(" 남았습니다!", NamedTextColor.YELLOW));
+                    String announceTime = (remainingSeconds >= 60) ? (remainingSeconds/60) + "분" : remainingSeconds + "초";
+                    Component broadcastMessage = MiniMessage.miniMessage().deserialize("<bold><aqua>무적 시간 <yellow>종료까지 <aqua>" + announceTime + "<yellow> 남았습니다!</bold>");
                     Bukkit.broadcast(broadcastMessage);
                     for (Player player : Bukkit.getOnlinePlayers()) {
                         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 2.0f);
@@ -199,7 +195,7 @@ public class GameManager {
     private String formatTime(long totalSeconds) {
         long minutes = totalSeconds / 60;
         long seconds = totalSeconds % 60;
-        return String.format("%d분 %02d초", minutes, seconds);
+        return String.format("%d:%02d", minutes, seconds);
     }
 
     private boolean shouldAnnounce(long seconds) {
@@ -216,8 +212,8 @@ public class GameManager {
         setState(GameState.IN_GAME);
 
         Title title = Title.title(
-                Component.text("무적 시간이 종료되었습니다!", NamedTextColor.RED, TextDecoration.BOLD),
-                Component.text("FIGHT!", NamedTextColor.YELLOW)
+                MiniMessage.miniMessage().deserialize("<bold><red>무적 시간이 종료되었습니다!</red></bold>"),
+                MiniMessage.miniMessage().deserialize("<yellow>FIGHT!</yellow>")
         );
 
         for (UUID playerUUID : getPlayerTeams().keySet()) {
@@ -244,8 +240,7 @@ public class GameManager {
                 }
 
                 if (alivePlayers.size() <= triggerCount && alivePlayers.size() > 0) {
-                    List<Component> messages = new ArrayList<>();
-                    messages.add(Component.text("----------생존자 위치----------", NamedTextColor.WHITE, TextDecoration.BOLD));
+                    Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<bold><white>--------생존자 위치--------</white></bold>"));
 
                     List<Player> sortedPlayers = alivePlayers.stream()
                             .map(Bukkit::getPlayer)
@@ -256,18 +251,13 @@ public class GameManager {
                     for (Player player : sortedPlayers) {
                         TeamType team = getPlayerTeam(player);
                         Location loc = player.getLocation();
-                        Component message = Component.text()
-                                .append(team.getStyledDisplayName())
-                                .append(Component.text("팀 ", team.getDisplayStyle()))
-                                .append(Component.text(player.getName(), team.getDisplayStyle()))
-                                .append(Component.text("님의 위치: ", NamedTextColor.WHITE))
-                                .append(Component.text(String.format("%d, %d, %d", loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()), NamedTextColor.WHITE))
-                                .build();
-                        messages.add(message);
+                        String teamColor = team == TeamType.APOSTLE_OF_LIGHT ? "<yellow>" : "<aqua>";
+                        String message = teamColor + "<bold>" + team.getDisplayName() + "팀 " + player.getName() + "</bold>님의 위치: <white>"
+                                + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + "</white>";
+                        Bukkit.broadcast(MiniMessage.miniMessage().deserialize(message));
                     }
 
-                    messages.add(Component.text("----------------------------", NamedTextColor.WHITE, TextDecoration.BOLD));
-                    messages.forEach(Bukkit::broadcast);
+                    Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<bold><white>----------------------------</white></bold>"));
                 }
             }
         }.runTaskTimer(plugin, 0L, interval);
