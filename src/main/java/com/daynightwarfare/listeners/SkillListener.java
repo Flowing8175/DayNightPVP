@@ -37,6 +37,7 @@ public class SkillListener implements Listener {
     private final Map<String, Long> cooldowns = new HashMap<>();
     private final Map<UUID, Long> sneakStartTimes = new HashMap<>();
     private final Map<UUID, ItemStack> originalChestplates = new HashMap<>();
+    private final Map<UUID, Boolean> shadowWingsGlided = new HashMap<>();
     private final Set<UUID> skillDisabledPlayers = new HashSet<>();
     private final NamespacedKey skillIdKey;
     private final NamespacedKey moonSmashKey;
@@ -300,6 +301,8 @@ public class SkillListener implements Listener {
                     ItemStack chestplate = player.getInventory().getChestplate();
                     if (chestplate != null) originalChestplates.put(uuid, chestplate.clone());
 
+                    shadowWingsGlided.put(uuid, false); // Mark as ready to fly, but hasn't yet
+
                     ItemStack elytra = new ItemStack(Material.ELYTRA);
                     elytra.addUnsafeEnchantment(Enchantment.DURABILITY, 10);
                     elytra.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
@@ -320,8 +323,20 @@ public class SkillListener implements Listener {
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
-        if (originalChestplates.containsKey(player.getUniqueId()) && !player.isGliding() && player.isOnGround()) {
-            player.getInventory().setChestplate(originalChestplates.remove(player.getUniqueId()));
+        UUID uuid = player.getUniqueId();
+
+        if (!originalChestplates.containsKey(uuid)) return;
+
+        // Player has activated the skill, check for state change
+        boolean hasGlided = shadowWingsGlided.getOrDefault(uuid, false);
+
+        if (!hasGlided && player.isGliding()) {
+            // Player has taken off for the first time
+            shadowWingsGlided.put(uuid, true);
+        } else if (hasGlided && !player.isGliding() && player.isOnGround()) {
+            // Player has landed after gliding
+            player.getInventory().setChestplate(originalChestplates.remove(uuid));
+            shadowWingsGlided.remove(uuid);
         }
     }
 

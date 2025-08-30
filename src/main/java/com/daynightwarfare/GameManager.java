@@ -356,8 +356,6 @@ public class GameManager {
                 material = Material.GLASS_PANE; name = "<gold>Mirror Dash</gold>"; lore.add("<gray>Right-click to dash behind an enemy.</gray>"); break;
             case "moons-chain":
                 material = Material.FLOWER_BANNER_PATTERN; name = "<aqua>Moon's Chain</aqua>"; lore.add("<gray>Right-click to chain nearby enemies.</gray>"); break;
-            case "shadow-wings":
-                material = Material.FEATHER; name = "<aqua>Shadow Wings</aqua>"; lore.add("<gray>Sneak for 2s to gain temporary flight.</gray>"); break;
             case "moon-smash":
                 material = Material.NETHER_STAR; name = "<aqua>Moon Smash</aqua>"; lore.add("<gray>Sneak while gliding to smash the ground.</gray>"); break;
             default:
