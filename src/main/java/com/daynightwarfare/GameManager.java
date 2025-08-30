@@ -22,6 +22,7 @@ public class GameManager {
 
     private GameState state;
     private final Map<UUID, TeamType> playerTeams;
+    private final Map<UUID, TeamType> pinnedPlayers;
     private final Set<UUID> alivePlayers;
 
     public BukkitTask gracePeriodTask;
@@ -31,6 +32,7 @@ public class GameManager {
     private GameManager() {
         this.state = GameState.WAITING;
         this.playerTeams = new HashMap<>();
+        this.pinnedPlayers = new HashMap<>();
         this.alivePlayers = new HashSet<>();
     }
 
@@ -89,17 +91,50 @@ public class GameManager {
         Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<red>게임이 강제 종료되어 초기화되었습니다.</red>"));
     }
 
+    public void setPlayerPin(UUID uuid, TeamType team) {
+        if (team == null) {
+            pinnedPlayers.remove(uuid);
+        } else {
+            pinnedPlayers.put(uuid, team);
+        }
+    }
+
     public void assignTeams() {
         playerTeams.clear();
         alivePlayers.clear();
-        List<Player> players = new ArrayList<>(Bukkit.getOnlinePlayers());
-        Collections.shuffle(players);
 
-        for (int i = 0; i < players.size(); i++) {
-            Player player = players.get(i);
-            TeamType team = (i % 2 == 0) ? TeamType.APOSTLE_OF_LIGHT : TeamType.APOSTLE_OF_MOON;
+        List<Player> onlinePlayers = new ArrayList<>(Bukkit.getOnlinePlayers());
+        List<Player> unassignedPlayers = new ArrayList<>();
+
+        int lightTeamCount = 0;
+        int moonTeamCount = 0;
+
+        // First, assign pinned players who are online
+        for (Player player : onlinePlayers) {
+            UUID uuid = player.getUniqueId();
+            if (pinnedPlayers.containsKey(uuid)) {
+                TeamType team = pinnedPlayers.get(uuid);
+                setPlayerTeam(player, team);
+                if (team == TeamType.APOSTLE_OF_LIGHT) lightTeamCount++;
+                else moonTeamCount++;
+            } else {
+                unassignedPlayers.add(player);
+            }
+        }
+
+        // Shuffle and assign the rest to balance the teams
+        Collections.shuffle(unassignedPlayers);
+        for (Player player : unassignedPlayers) {
+            TeamType team = (lightTeamCount <= moonTeamCount) ? TeamType.APOSTLE_OF_LIGHT : TeamType.APOSTLE_OF_MOON;
             setPlayerTeam(player, team);
+            if (team == TeamType.APOSTLE_OF_LIGHT) lightTeamCount++;
+            else moonTeamCount++;
+        }
+
+        // Finalize assignments and send messages
+        for(Player player : onlinePlayers) {
             alivePlayers.add(player.getUniqueId());
+            TeamType team = getPlayerTeam(player);
             String teamColor = team == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua";
             player.sendMessage(MiniMessage.miniMessage().deserialize("<gray>당신은 <" + teamColor + ">" + team.getDisplayName() + "</" + teamColor + "> 팀입니다.</gray>"));
         }

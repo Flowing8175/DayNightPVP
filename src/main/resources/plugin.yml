@@ -9,6 +9,7 @@ commands:
     description: Main command for the Day & Night Warfare game.
     usage: /<command> [start|stop|grace]
     permission: daynight.use
+    aliases: [g]
 permissions:
   daynight.use:
     description: Allows usage of basic game commands.
@@ -21,4 +22,7 @@ permissions:
     default: op
   daynight.admin.grace:
     description: Allows managing the grace period.
+    default: op
+  daynight.admin.team:
+    description: Allows pinning players to teams.
     default: op

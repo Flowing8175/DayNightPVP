@@ -10,6 +10,7 @@ import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import com.daynightwarfare.TeamType;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -35,7 +36,7 @@ public class GameCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(miniMessage.deserialize("<red>Usage: /game <start|stop|grace></red>"));
+            sender.sendMessage(miniMessage.deserialize("<red>Usage: /game <start|stop|grace|team></red>"));
             return true;
         }
 
@@ -51,8 +52,11 @@ public class GameCommand implements CommandExecutor, TabCompleter {
             case "grace":
                 handleGrace(sender, args);
                 break;
+            case "team":
+                handleTeam(sender, args);
+                break;
             default:
-                sender.sendMessage(miniMessage.deserialize("<red>Unknown subcommand. Usage: /game <start|stop|grace></red>"));
+                sender.sendMessage(miniMessage.deserialize("<red>Unknown subcommand. Usage: /game <start|stop|grace|team></red>"));
                 break;
         }
 
@@ -168,20 +172,73 @@ public class GameCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    private void handleTeam(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("daynight.admin.team")) { // Add this permission to plugin.yml
+            sender.sendMessage(miniMessage.deserialize("<red>You do not have permission to manage teams.</red>"));
+            return;
+        }
+        if (args.length < 3) {
+            sender.sendMessage(miniMessage.deserialize("<red>Usage: /game team <pin|unpin> <player> [team]</red>"));
+            return;
+        }
+
+        String action = args[1].toLowerCase();
+        Player target = Bukkit.getPlayer(args[2]);
+        if (target == null) {
+            sender.sendMessage(miniMessage.deserialize("<red>Player not found.</red>"));
+            return;
+        }
+
+        if (action.equals("pin")) {
+            if (args.length < 4) {
+                sender.sendMessage(miniMessage.deserialize("<red>Usage: /game team pin <player> <Light|Moon></red>"));
+                return;
+            }
+            String teamName = args[3].toLowerCase();
+            TeamType team;
+            if (teamName.startsWith("l")) {
+                team = TeamType.APOSTLE_OF_LIGHT;
+            } else if (teamName.startsWith("m") || teamName.startsWith("s")) { // Moon or Shadow
+                team = TeamType.APOSTLE_OF_MOON;
+            } else {
+                sender.sendMessage(miniMessage.deserialize("<red>Invalid team. Use 'Light' or 'Moon'.</red>"));
+                return;
+            }
+            gameManager.setPlayerPin(target.getUniqueId(), team);
+            sender.sendMessage(miniMessage.deserialize("<green>Pinned " + target.getName() + " to the " + team.getDisplayName() + " team.</green>"));
+        } else if (action.equals("unpin")) {
+            gameManager.setPlayerPin(target.getUniqueId(), null);
+            sender.sendMessage(miniMessage.deserialize("<green>Unpinned " + target.getName() + ".</green>"));
+        } else {
+            sender.sendMessage(miniMessage.deserialize("<red>Usage: /game team <pin|unpin> <player> [team]</red>"));
+        }
+    }
+
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
         List<String> completions = new ArrayList<>();
+        String currentArg = args[args.length - 1].toLowerCase();
+
         if (args.length == 1) {
             if (sender.hasPermission("daynight.admin.start")) completions.add("start");
             if (sender.hasPermission("daynight.admin.stop")) completions.add("stop");
             if (sender.hasPermission("daynight.admin.grace")) completions.add("grace");
+            if (sender.hasPermission("daynight.admin.team")) completions.add("team");
         } else if (args.length == 2) {
             if (args[0].equalsIgnoreCase("grace") && sender.hasPermission("daynight.admin.grace")) {
                 completions.addAll(Arrays.asList("add", "subtract", "end"));
+            } else if (args[0].equalsIgnoreCase("team") && sender.hasPermission("daynight.admin.team")) {
+                completions.addAll(Arrays.asList("pin", "unpin"));
             }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("team")) {
+             return Bukkit.getOnlinePlayers().stream()
+                        .map(Player::getName)
+                        .filter(name -> name.toLowerCase().startsWith(currentArg))
+                        .collect(Collectors.toList());
+        } else if (args.length == 4 && args[1].equalsIgnoreCase("pin")) {
+            completions.addAll(Arrays.asList("Light", "Moon"));
         }
 
-        String currentArg = args[args.length - 1].toLowerCase();
         return completions.stream()
                 .filter(s -> s.toLowerCase().startsWith(currentArg))
                 .collect(Collectors.toList());
