@@ -322,22 +322,28 @@ public class GameManager {
     }
 
     public void supplySkillItems() {
-        String[] sunSkills = {"solar-flare", "suns-spear", "afterglow", "mirror-dash"};
-        String[] moonSkills = {"moons-chain", "shadow-wings", "moon-smash"};
-
         for (UUID playerUUID : playerTeams.keySet()) {
             Player player = Bukkit.getPlayer(playerUUID);
-            if (player == null) continue;
+            if (player != null) {
+                supplySkillItems(player);
+            }
+        }
+    }
 
-            player.getInventory().clear();
-            TeamType team = getPlayerTeam(player);
-            String[] skillsToGive = (team == TeamType.APOSTLE_OF_LIGHT) ? sunSkills : moonSkills;
+    public void supplySkillItems(Player player) {
+        String[] sunSkills = {"solar-flare", "suns-spear", "afterglow", "mirror-dash"};
+        String[] moonSkills = {"moons-chain", "shadow-wings"};
 
-            for (String skillId : skillsToGive) {
-                ItemStack skillItem = createSkillItem(skillId);
-                if (skillItem != null) {
-                    player.getInventory().addItem(skillItem);
-                }
+        player.getInventory().clear();
+        TeamType team = getPlayerTeam(player);
+        if (team == null) return;
+
+        String[] skillsToGive = (team == TeamType.APOSTLE_OF_LIGHT) ? sunSkills : moonSkills;
+
+        for (String skillId : skillsToGive) {
+            ItemStack skillItem = createSkillItem(skillId);
+            if (skillItem != null) {
+                player.getInventory().addItem(skillItem);
             }
         }
     }
@@ -357,6 +363,28 @@ public class GameManager {
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.displayName(Component.text(player.getName()));
         }
+    }
+
+    public void handleLateJoin(Player player) {
+        // Assign to the smaller team
+        long lightTeamCount = playerTeams.values().stream().filter(t -> t == TeamType.APOSTLE_OF_LIGHT).count();
+        long moonTeamCount = playerTeams.values().stream().filter(t -> t == TeamType.APOSTLE_OF_MOON).count();
+        TeamType assignedTeam = (lightTeamCount <= moonTeamCount) ? TeamType.APOSTLE_OF_LIGHT : TeamType.APOSTLE_OF_MOON;
+
+        setPlayerTeam(player, assignedTeam);
+        alivePlayers.add(player.getUniqueId());
+
+        // Update display name
+        updatePlayerDisplayName(player);
+
+        // Supply items
+        supplySkillItems(player);
+
+        // Teleport and notify
+        player.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
+        String teamColor = assignedTeam == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua";
+        player.sendMessage(MiniMessage.miniMessage().deserialize("<green>진행중인 게임에 참여합니다!</green>"));
+        player.sendMessage(MiniMessage.miniMessage().deserialize("<gray>당신은 <" + teamColor + ">[" + assignedTeam.getDisplayName() + "]</" + teamColor + "> 팀입니다.</gray>"));
     }
 
     private ItemStack createSkillItem(String skillId) {

@@ -2,6 +2,7 @@ package com.daynightwarfare.listeners;
 
 import com.daynightwarfare.DayNightPlugin;
 import com.daynightwarfare.GameManager;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -17,7 +18,9 @@ public class GameListener implements Listener {
     @EventHandler
     public void onEntityDamage(EntityDamageEvent event) {
         if (gameManager.isGracePeriodActive()) {
-            event.setCancelled(true);
+            if (event.getEntity() instanceof Player) {
+                event.setCancelled(true);
+            }
         }
     }
 }
