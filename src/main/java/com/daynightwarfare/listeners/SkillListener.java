@@ -179,18 +179,16 @@ public class SkillListener implements Listener {
     private void handleSolarFlare(Player player) {
         if (!canUseSkill(player, TeamType.APOSTLE_OF_LIGHT) || !checkCooldown(player, "solar-flare")) return;
 
-        for (Entity entity : player.getNearbyEntities(15, 15, 15)) {
-            if (!(entity instanceof LivingEntity target)) continue;
+        for (Player targetPlayer : Bukkit.getOnlinePlayers()) {
+            if (targetPlayer.equals(player)) continue;
+            if (targetPlayer.getLocation().distanceSquared(player.getLocation()) > 15 * 15) continue;
 
-            Player targetPlayer = (entity instanceof Player) ? (Player) entity : null;
-            if (targetPlayer != null) {
-                TeamType targetTeam = gameManager.getPlayerTeam(targetPlayer);
-                if (targetTeam != null && targetTeam != TeamType.APOSTLE_OF_LIGHT) { // Enemy
-                    target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20, 0));
-                    target.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 70, 1)); // 3.5 seconds
-                } else if (targetTeam == TeamType.APOSTLE_OF_LIGHT) { // Ally
-                    target.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 80, 0));
-                }
+            TeamType targetTeam = gameManager.getPlayerTeam(targetPlayer);
+            if (targetTeam != null && targetTeam != TeamType.APOSTLE_OF_LIGHT) { // Enemy
+                targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20, 0));
+                targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 70, 1)); // 3.5 seconds
+            } else if (targetTeam == TeamType.APOSTLE_OF_LIGHT) { // Ally
+                targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 80, 0));
             }
         }
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_TWINKLE, 1f, 1f);
@@ -251,14 +249,14 @@ public class SkillListener implements Listener {
                     return;
                 }
                 player.getWorld().spawnParticle(Particle.FLAME, player.getLocation().add(0, 1, 0), 20, 0.5, 0.5, 0.5, 0.01);
-                for (Entity entity : player.getNearbyEntities(6, 6, 6)) { // Range nerfed to 6
-                    if (entity instanceof Player targetPlayer && entity != player) {
-                         if (gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_LIGHT) {
-                            Vector velocity = targetPlayer.getVelocity(); // Store velocity
-                            targetPlayer.damage(1, player);
-                            // Set velocity back to cancel knockback
-                            Bukkit.getScheduler().runTaskLater(plugin, () -> targetPlayer.setVelocity(velocity), 1L);
-                         }
+                for (Player targetPlayer : Bukkit.getOnlinePlayers()) {
+                    if (targetPlayer.equals(player)) continue;
+                    if (targetPlayer.getLocation().distanceSquared(player.getLocation()) > 6 * 6) continue;
+
+                    if (gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_LIGHT) {
+                        Vector velocity = targetPlayer.getVelocity();
+                        targetPlayer.damage(1, player);
+                        Bukkit.getScheduler().runTaskLater(plugin, () -> targetPlayer.setVelocity(velocity), 1L);
                     }
                 }
                 ticks++;
@@ -272,16 +270,19 @@ public class SkillListener implements Listener {
         if (!canUseSkill(player, TeamType.APOSTLE_OF_LIGHT) || !checkCooldown(player, "mirror-dash")) return;
 
         Vector playerDirection = player.getEyeLocation().getDirection().normalize();
-        LivingEntity bestTarget = null;
+        Player bestTarget = null;
         double bestAngle = 45.0;
 
-        for (Entity entity : player.getNearbyEntities(30, 30, 30)) {
-            if (entity instanceof Player targetPlayer && entity != player && gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_LIGHT) {
-                Vector targetDirection = targetPlayer.getEyeLocation().subtract(player.getEyeLocation()).toVector().normalize();
-                double angle = Math.toDegrees(Math.acos(playerDirection.dot(targetDirection)));
-                if (angle < bestAngle) {
-                    bestAngle = angle;
-                    bestTarget = targetPlayer;
+        for (Player targetPlayer : Bukkit.getOnlinePlayers()) {
+            if (targetPlayer.equals(player)) continue;
+            if (targetPlayer.getWorld().equals(player.getWorld()) && targetPlayer.getLocation().distanceSquared(player.getLocation()) <= 30 * 30) {
+                if (gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_LIGHT) {
+                    Vector targetDirection = targetPlayer.getEyeLocation().subtract(player.getEyeLocation()).toVector().normalize();
+                    double angle = Math.toDegrees(Math.acos(playerDirection.dot(targetDirection)));
+                    if (angle < bestAngle) {
+                        bestAngle = angle;
+                        bestTarget = targetPlayer;
+                    }
                 }
             }
         }
@@ -304,11 +305,14 @@ public class SkillListener implements Listener {
     private void handleMoonsChain(Player player) {
         if (!canUseSkill(player, TeamType.APOSTLE_OF_MOON) || !checkCooldown(player, "moons-chain")) return;
 
-        for (Entity entity : player.getNearbyEntities(8, 8, 8)) {
-            if (entity instanceof Player target && entity != player && gameManager.getPlayerTeam(target) != TeamType.APOSTLE_OF_MOON) {
-                target.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 60, 2));
-                skillDisabledPlayers.add(target.getUniqueId());
-                Bukkit.getScheduler().runTaskLater(plugin, () -> skillDisabledPlayers.remove(target.getUniqueId()), 120L); // 6 seconds
+        for (Player targetPlayer : Bukkit.getOnlinePlayers()) {
+            if (targetPlayer.equals(player)) continue;
+            if (targetPlayer.getLocation().distanceSquared(player.getLocation()) > 8 * 8) continue;
+
+            if (gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_MOON) {
+                targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 60, 2));
+                skillDisabledPlayers.add(targetPlayer.getUniqueId());
+                Bukkit.getScheduler().runTaskLater(plugin, () -> skillDisabledPlayers.remove(targetPlayer.getUniqueId()), 120L); // 6 seconds
             }
         }
         player.getWorld().playSound(player.getLocation(), Sound.BLOCK_CHAIN_BREAK, 1f, 0.7f);
@@ -337,10 +341,9 @@ public class SkillListener implements Listener {
         setCooldown(player, "shadow-wings");
     }
 
+    @EventHandler
     public void onPlayerToggleSneak(PlayerToggleSneakEvent event) {
         Player player = event.getPlayer();
-        UUID uuid = player.getUniqueId();
-
         if (event.isSneaking()) {
             if (player.isGliding() && canUseSkill(player, TeamType.APOSTLE_OF_MOON) && checkCooldown(player, "moon-smash")) {
                  player.getPersistentDataContainer().set(moonSmashKey, PersistentDataType.BYTE, (byte)1);
@@ -358,14 +361,11 @@ public class SkillListener implements Listener {
 
         if (!originalChestplates.containsKey(uuid)) return;
 
-        // Player has activated the skill, check for state change
         boolean hasGlided = shadowWingsGlided.getOrDefault(uuid, false);
 
         if (!hasGlided && player.isGliding()) {
-            // Player has taken off for the first time
             shadowWingsGlided.put(uuid, true);
         } else if (hasGlided && !player.isGliding() && player.isOnGround()) {
-            // Player has landed after gliding
             player.getInventory().setChestplate(originalChestplates.remove(uuid));
             shadowWingsGlided.remove(uuid);
         }
@@ -377,6 +377,7 @@ public class SkillListener implements Listener {
 
         if (event.getCause() == EntityDamageEvent.DamageCause.FALL && originalChestplates.containsKey(player.getUniqueId())) {
              player.getInventory().setChestplate(originalChestplates.remove(player.getUniqueId()));
+             shadowWingsGlided.remove(player.getUniqueId());
         }
 
         if (event.getCause() == EntityDamageEvent.DamageCause.FALL) {
@@ -388,8 +389,11 @@ public class SkillListener implements Listener {
                 player.getWorld().playSound(loc, Sound.BLOCK_ANVIL_LAND, 1.5f, 0.5f);
                 player.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, loc, 5);
 
-                for (Entity entity : player.getNearbyEntities(5, 5, 5)) {
-                    if (entity instanceof Player targetPlayer && gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_MOON) {
+                for (Player targetPlayer : Bukkit.getOnlinePlayers()) {
+                    if (targetPlayer.equals(player)) continue;
+                    if (targetPlayer.getLocation().distanceSquared(player.getLocation()) > 5*5) continue;
+
+                    if (gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_MOON) {
                         targetPlayer.damage(event.getDamage() * 0.5, player);
                         Vector knockback = targetPlayer.getLocation().toVector().subtract(loc.toVector()).normalize().multiply(1.5);
                         targetPlayer.setVelocity(knockback);
