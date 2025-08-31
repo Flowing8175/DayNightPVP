@@ -249,16 +249,28 @@ public class SkillListener implements Listener {
                     return;
                 }
                 player.getWorld().spawnParticle(Particle.FLAME, player.getLocation().add(0, 1, 0), 20, 0.5, 0.5, 0.5, 0.01);
+
+                Map<Player, Vector> velocitiesToRestore = new HashMap<>();
                 for (Player targetPlayer : Bukkit.getOnlinePlayers()) {
                     if (targetPlayer.equals(player)) continue;
                     if (targetPlayer.getLocation().distanceSquared(player.getLocation()) > 6 * 6) continue;
 
                     if (gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_LIGHT) {
-                        Vector velocity = targetPlayer.getVelocity();
+                        velocitiesToRestore.put(targetPlayer, targetPlayer.getVelocity());
                         targetPlayer.damage(1, player);
-                        Bukkit.getScheduler().runTaskLater(plugin, () -> targetPlayer.setVelocity(velocity), 1L);
                     }
                 }
+
+                if (!velocitiesToRestore.isEmpty()) {
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        for (Map.Entry<Player, Vector> entry : velocitiesToRestore.entrySet()) {
+                            if (entry.getKey().isValid()) {
+                                entry.getKey().setVelocity(entry.getValue());
+                            }
+                        }
+                    }, 1L);
+                }
+
                 ticks++;
             }
         }.runTaskTimer(plugin, 0L, 10L);
@@ -269,21 +281,29 @@ public class SkillListener implements Listener {
     private void handleMirrorDash(Player player) {
         if (!canUseSkill(player, TeamType.APOSTLE_OF_LIGHT) || !checkCooldown(player, "mirror-dash")) return;
 
-        Vector playerDirection = player.getEyeLocation().getDirection().normalize();
+        Vector playerDirection = player.getEyeLocation().getDirection();
+        playerDirection.setY(0).normalize(); // Ignore Y-axis for cone check
+
         Player bestTarget = null;
-        double bestAngle = 45.0;
+        double closestDot = -1.0; // Dot product ranges from -1 to 1. Closer to 1 is better.
+        double coneThreshold = Math.cos(Math.toRadians(22.5)); // Pre-calculate cosine of half-angle
 
         for (Player targetPlayer : Bukkit.getOnlinePlayers()) {
-            if (targetPlayer.equals(player)) continue;
-            if (targetPlayer.getWorld().equals(player.getWorld()) && targetPlayer.getLocation().distanceSquared(player.getLocation()) <= 30 * 30) {
-                if (gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_LIGHT) {
-                    Vector targetDirection = targetPlayer.getEyeLocation().subtract(player.getEyeLocation()).toVector().normalize();
-                    double angle = Math.toDegrees(Math.acos(playerDirection.dot(targetDirection)));
-                    if (angle < bestAngle) {
-                        bestAngle = angle;
-                        bestTarget = targetPlayer;
-                    }
-                }
+            if (targetPlayer.equals(player) || targetPlayer.getWorld() != player.getWorld() || gameManager.getPlayerTeam(targetPlayer) == TeamType.APOSTLE_OF_LIGHT) {
+                continue;
+            }
+            if (targetPlayer.getLocation().distanceSquared(player.getLocation()) > 30 * 30) {
+                continue;
+            }
+
+            Vector targetDirection = targetPlayer.getLocation().toVector().subtract(player.getLocation().toVector());
+            targetDirection.setY(0).normalize();
+
+            double dot = playerDirection.dot(targetDirection);
+
+            if (dot > coneThreshold && dot > closestDot) {
+                closestDot = dot;
+                bestTarget = targetPlayer;
             }
         }
 
