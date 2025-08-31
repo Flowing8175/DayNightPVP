@@ -106,7 +106,6 @@ public class GameCommand implements CommandExecutor, TabCompleter {
             return;
         }
         gameManager.resetGame();
-        sender.sendMessage(miniMessage.deserialize("<green>게임이 강제 종료되었습니다.</green>"));
     }
 
     private void handleGrace(CommandSender sender, String[] args) {
