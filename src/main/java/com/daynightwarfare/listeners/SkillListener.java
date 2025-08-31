@@ -315,7 +315,6 @@ public class SkillListener implements Listener {
         setCooldown(player, "moons-chain");
     }
 
-    @EventHandler
     private void handleShadowWings(Player player) {
         if (!canUseSkill(player, TeamType.APOSTLE_OF_MOON) || !checkCooldown(player, "shadow-wings")) return;
 
