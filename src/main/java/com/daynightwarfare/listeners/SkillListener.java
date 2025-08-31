@@ -38,6 +38,7 @@ public class SkillListener implements Listener {
     private final Map<UUID, Long> sneakStartTimes = new HashMap<>();
     private final Map<UUID, ItemStack> originalChestplates = new HashMap<>();
     private final Map<UUID, Boolean> shadowWingsGlided = new HashMap<>();
+    private final Map<UUID, Long> friendlyFireWarningCooldowns = new HashMap<>();
     private final Set<UUID> skillDisabledPlayers = new HashSet<>();
     private final NamespacedKey skillIdKey;
     private final NamespacedKey moonSmashKey;
@@ -113,11 +114,31 @@ public class SkillListener implements Listener {
     }
 
     @EventHandler
-    public void onSkillSwordAttack(EntityDamageByEntityEvent event) {
-        if (!(event.getDamager() instanceof Player player)) return;
-        ItemStack itemInHand = player.getInventory().getItemInMainHand();
+    public void onPlayerDamagePlayer(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Player damager) || !(event.getEntity() instanceof Player victim)) {
+            return;
+        }
+
+        // Prevent skill sword melee
+        ItemStack itemInHand = damager.getInventory().getItemInMainHand();
         if (isSkillItem(itemInHand, "suns-spear")) {
             event.setCancelled(true);
+        }
+
+        // Prevent friendly fire
+        TeamType damagerTeam = gameManager.getPlayerTeam(damager);
+        TeamType victimTeam = gameManager.getPlayerTeam(victim);
+
+        if (damagerTeam != null && damagerTeam == victimTeam) {
+            event.setCancelled(true);
+
+            long now = System.currentTimeMillis();
+            long cooldown = friendlyFireWarningCooldowns.getOrDefault(damager.getUniqueId(), 0L);
+
+            if (now > cooldown) {
+                damager.sendMessage(miniMessage.deserialize("<red>팀원을 공격할 수 없습니다!</red>"));
+                friendlyFireWarningCooldowns.put(damager.getUniqueId(), now + 1000);
+            }
         }
     }
     //</editor-fold>
