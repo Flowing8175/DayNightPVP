@@ -187,7 +187,7 @@ public class SkillListener implements Listener {
                 TeamType targetTeam = gameManager.getPlayerTeam(targetPlayer);
                 if (targetTeam != null && targetTeam != TeamType.APOSTLE_OF_LIGHT) { // Enemy
                     target.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20, 0));
-                    target.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 40, 1));
+                    target.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 70, 1)); // 3.5 seconds
                 } else if (targetTeam == TeamType.APOSTLE_OF_LIGHT) { // Ally
                     target.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 80, 0));
                 }
