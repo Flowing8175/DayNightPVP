@@ -26,3 +26,6 @@ permissions:
   daynight.admin.team:
     description: Allows pinning players to teams.
     default: op
+  daynight.admin.give:
+    description: Allows giving skill items to players.
+    default: op

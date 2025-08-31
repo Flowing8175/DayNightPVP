@@ -3,6 +3,7 @@ package com.daynightwarfare;
 import com.daynightwarfare.commands.GameCommand;
 import com.daynightwarfare.listeners.GameListener;
 import com.daynightwarfare.listeners.PlayerJoinListener;
+import com.daynightwarfare.listeners.PlayerQuitListener;
 import com.daynightwarfare.listeners.SkillListener;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -31,6 +32,7 @@ public final class DayNightPlugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new GameListener(this), this);
         getServer().getPluginManager().registerEvents(new SkillListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinListener(this), this);
+        getServer().getPluginManager().registerEvents(new PlayerQuitListener(this), this);
 
         startPassiveEffectTask();
 

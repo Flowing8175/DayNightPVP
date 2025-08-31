@@ -13,6 +13,7 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
@@ -36,7 +37,7 @@ public class GameCommand implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(miniMessage.deserialize("<red>사용법: /game <start|stop|grace|team></red>"));
+            sender.sendMessage(miniMessage.deserialize("<red>사용법: /game <start|stop|grace|team|give></red>"));
             return true;
         }
 
@@ -55,8 +56,11 @@ public class GameCommand implements CommandExecutor, TabCompleter {
             case "team":
                 handleTeam(sender, args);
                 break;
+            case "give":
+                handleGive(sender, args);
+                break;
             default:
-                sender.sendMessage(miniMessage.deserialize("<red>알 수 없는 명령어입니다. 사용법: /game <start|stop|grace|team></red>"));
+                sender.sendMessage(miniMessage.deserialize("<red>알 수 없는 명령어입니다. 사용법: /game <start|stop|grace|team|give></red>"));
                 break;
         }
 
@@ -213,6 +217,33 @@ public class GameCommand implements CommandExecutor, TabCompleter {
         }
     }
 
+    private void handleGive(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("daynight.admin.give")) {
+            sender.sendMessage(miniMessage.deserialize("<red>You do not have permission to use this command.</red>"));
+            return;
+        }
+        if (args.length < 2) {
+            sender.sendMessage(miniMessage.deserialize("<red>사용법: /game give <skill_id></red>"));
+            return;
+        }
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(miniMessage.deserialize("<red>This command can only be run by a player.</red>"));
+            return;
+        }
+        Player player = (Player) sender;
+        String skillId = args[1].toLowerCase();
+
+        ItemStack skillItem = gameManager.createSkillItem(skillId);
+
+        if (skillItem == null) {
+            sender.sendMessage(miniMessage.deserialize("<red>알 수 없는 스킬 ID입니다.</red>"));
+            return;
+        }
+
+        player.getInventory().addItem(skillItem);
+        sender.sendMessage(miniMessage.deserialize("<green>" + skillId + " 아이템을 받았습니다.</green>"));
+    }
+
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
         List<String> completions = new ArrayList<>();
@@ -223,11 +254,14 @@ public class GameCommand implements CommandExecutor, TabCompleter {
             if (sender.hasPermission("daynight.admin.stop")) completions.add("stop");
             if (sender.hasPermission("daynight.admin.grace")) completions.add("grace");
             if (sender.hasPermission("daynight.admin.team")) completions.add("team");
+            if (sender.hasPermission("daynight.admin.give")) completions.add("give");
         } else if (args.length == 2) {
             if (args[0].equalsIgnoreCase("grace") && sender.hasPermission("daynight.admin.grace")) {
                 completions.addAll(Arrays.asList("add", "subtract", "end"));
             } else if (args[0].equalsIgnoreCase("team") && sender.hasPermission("daynight.admin.team")) {
                 completions.addAll(Arrays.asList("pin", "unpin"));
+            } else if (args[0].equalsIgnoreCase("give") && sender.hasPermission("daynight.admin.give")) {
+                completions.addAll(Arrays.asList("solar-flare", "suns-spear", "afterglow", "mirror-dash", "moons-chain", "shadow-wings"));
             }
         } else if (args.length == 3 && args[0].equalsIgnoreCase("team")) {
              return Bukkit.getOnlinePlayers().stream()

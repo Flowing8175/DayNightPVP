@@ -22,7 +22,11 @@ public class PlayerJoinListener implements Listener {
         GameState currentState = gameManager.getState();
 
         if (currentState == GameState.IN_GAME || currentState == GameState.GRACE_PERIOD) {
-            gameManager.handleLateJoin(player);
+            if (gameManager.wasPlayerInGame(player)) {
+                gameManager.handleReconnect(player);
+            } else {
+                gameManager.handleLateJoin(player);
+            }
         }
     }
 }

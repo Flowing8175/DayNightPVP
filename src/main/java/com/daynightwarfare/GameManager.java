@@ -89,6 +89,10 @@ public class GameManager {
 
         resetPlayerDisplayNames();
 
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.setGameMode(GameMode.SURVIVAL);
+        }
+
         setState(GameState.WAITING);
         Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<red>게임이 강제 종료되어 초기화되었습니다.</red>"));
     }
@@ -365,6 +369,28 @@ public class GameManager {
         }
     }
 
+    public boolean wasPlayerInGame(Player player) {
+        return playerTeams.containsKey(player.getUniqueId());
+    }
+
+    public void handleReconnect(Player player) {
+        updatePlayerDisplayName(player);
+        if (!alivePlayers.contains(player.getUniqueId())) {
+            player.setGameMode(GameMode.SPECTATOR);
+            player.sendMessage(MiniMessage.miniMessage().deserialize("<gray>관전자로 다시 참여했습니다.</gray>"));
+        } else {
+            player.getInventory().clear();
+            supplySkillItems(player);
+            if (player.getBedSpawnLocation() != null) {
+                player.teleport(player.getBedSpawnLocation());
+            } else {
+                // Fallback teleport to a random living teammate
+                teleportToRandomTeammate(player);
+            }
+            player.sendMessage(MiniMessage.miniMessage().deserialize("<green>게임에 다시 참여했습니다!</green>"));
+        }
+    }
+
     public void handleLateJoin(Player player) {
         // Assign to the smaller team
         long lightTeamCount = playerTeams.values().stream().filter(t -> t == TeamType.APOSTLE_OF_LIGHT).count();
@@ -374,20 +400,33 @@ public class GameManager {
         setPlayerTeam(player, assignedTeam);
         alivePlayers.add(player.getUniqueId());
 
-        // Update display name
         updatePlayerDisplayName(player);
-
-        // Supply items
         supplySkillItems(player);
 
-        // Teleport and notify
-        player.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
+        teleportToRandomTeammate(player);
+
         String teamColor = assignedTeam == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua";
         player.sendMessage(MiniMessage.miniMessage().deserialize("<green>진행중인 게임에 참여합니다!</green>"));
         player.sendMessage(MiniMessage.miniMessage().deserialize("<gray>당신은 <" + teamColor + ">[" + assignedTeam.getDisplayName() + "]</" + teamColor + "> 팀입니다.</gray>"));
     }
 
-    private ItemStack createSkillItem(String skillId) {
+    private void teleportToRandomTeammate(Player playerToTeleport) {
+        TeamType team = getPlayerTeam(playerToTeleport);
+        Optional<Player> teammate = playerTeams.entrySet().stream()
+            .filter(entry -> entry.getValue() == team && !entry.getKey().equals(playerToTeleport.getUniqueId()))
+            .map(entry -> Bukkit.getPlayer(entry.getKey()))
+            .filter(p -> p != null && p.isOnline() && alivePlayers.contains(p.getUniqueId()))
+            .findAny();
+
+        if (teammate.isPresent()) {
+            playerToTeleport.teleport(teammate.get().getLocation());
+        } else {
+            // If no teammate found, teleport to world spawn as a fallback
+            playerToTeleport.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
+        }
+    }
+
+    public ItemStack createSkillItem(String skillId) {
         Material material;
         String name;
         List<String> lore = new ArrayList<>();
@@ -412,6 +451,9 @@ public class GameManager {
 
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
+        if (material == Material.GOLDEN_SWORD || material == Material.FEATHER) { // Feather is for Shadow Wings which gives an Elytra
+            meta.setUnbreakable(true);
+        }
         meta.displayName(MiniMessage.miniMessage().deserialize(name).decoration(TextDecoration.ITALIC, false));
         List<Component> loreComponents = lore.stream()
                 .map(line -> MiniMessage.miniMessage().deserialize(line).decoration(TextDecoration.ITALIC, false))
