@@ -250,25 +250,13 @@ public class SkillListener implements Listener {
                 }
                 player.getWorld().spawnParticle(Particle.FLAME, player.getLocation().add(0, 1, 0), 20, 0.5, 0.5, 0.5, 0.01);
 
-                Map<Player, Vector> velocitiesToRestore = new HashMap<>();
                 for (Player targetPlayer : Bukkit.getOnlinePlayers()) {
                     if (targetPlayer.equals(player)) continue;
                     if (targetPlayer.getLocation().distanceSquared(player.getLocation()) > 6 * 6) continue;
 
                     if (gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_LIGHT) {
-                        velocitiesToRestore.put(targetPlayer, targetPlayer.getVelocity());
-                        targetPlayer.damage(1, player);
+                        targetPlayer.damage(1.0); // Sourceless damage to prevent knockback
                     }
-                }
-
-                if (!velocitiesToRestore.isEmpty()) {
-                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                        for (Map.Entry<Player, Vector> entry : velocitiesToRestore.entrySet()) {
-                            if (entry.getKey().isValid()) {
-                                entry.getKey().setVelocity(entry.getValue());
-                            }
-                        }
-                    }, 1L);
                 }
 
                 ticks++;
