@@ -15,6 +15,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
@@ -141,6 +142,13 @@ public class SkillListener implements Listener {
             }
         }
     }
+
+    @EventHandler
+    public void onPlayerDropItem(PlayerDropItemEvent event) {
+        if (isAnySkillItem(event.getItemDrop().getItemStack())) {
+            event.setCancelled(true);
+        }
+    }
     //</editor-fold>
 
 
@@ -163,6 +171,8 @@ public class SkillListener implements Listener {
             handleMirrorDash(player);
         } else if (isSkillItem(item, "moons-chain")) {
             handleMoonsChain(player);
+        } else if (isSkillItem(item, "shadow-wings")) {
+            handleShadowWings(player);
         }
     }
 
@@ -241,10 +251,13 @@ public class SkillListener implements Listener {
                     return;
                 }
                 player.getWorld().spawnParticle(Particle.FLAME, player.getLocation().add(0, 1, 0), 20, 0.5, 0.5, 0.5, 0.01);
-                for (Entity entity : player.getNearbyEntities(8, 8, 8)) {
+                for (Entity entity : player.getNearbyEntities(6, 6, 6)) { // Range nerfed to 6
                     if (entity instanceof Player targetPlayer && entity != player) {
                          if (gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_LIGHT) {
+                            Vector velocity = targetPlayer.getVelocity(); // Store velocity
                             targetPlayer.damage(1, player);
+                            // Set velocity back to cancel knockback
+                            Bukkit.getScheduler().runTaskLater(plugin, () -> targetPlayer.setVelocity(velocity), 1L);
                          }
                     }
                 }
@@ -303,41 +316,38 @@ public class SkillListener implements Listener {
     }
 
     @EventHandler
+    private void handleShadowWings(Player player) {
+        if (!canUseSkill(player, TeamType.APOSTLE_OF_MOON) || !checkCooldown(player, "shadow-wings")) return;
+
+        UUID uuid = player.getUniqueId();
+        ItemStack chestplate = player.getInventory().getChestplate();
+        if (chestplate != null) originalChestplates.put(uuid, chestplate.clone());
+
+        shadowWingsGlided.put(uuid, false);
+
+        ItemStack elytra = new ItemStack(Material.ELYTRA);
+        elytra.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
+        ItemMeta meta = elytra.getItemMeta();
+        if (meta instanceof Damageable) {
+            ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 6);
+        }
+        elytra.setItemMeta(meta);
+
+        player.getInventory().setChestplate(elytra);
+        player.getInventory().addItem(new ItemStack(Material.FIREWORK_ROCKET));
+        setCooldown(player, "shadow-wings");
+    }
+
     public void onPlayerToggleSneak(PlayerToggleSneakEvent event) {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
 
         if (event.isSneaking()) {
-            sneakStartTimes.put(uuid, System.currentTimeMillis());
             if (player.isGliding() && canUseSkill(player, TeamType.APOSTLE_OF_MOON) && checkCooldown(player, "moon-smash")) {
                  player.getPersistentDataContainer().set(moonSmashKey, PersistentDataType.BYTE, (byte)1);
-                 player.setVelocity(new Vector(0, -10, 0));
+                 player.setGliding(false);
+                 player.setVelocity(new Vector(0, -2.5, 0));
                  setCooldown(player, "moon-smash");
-            }
-        } else {
-            Long startTime = sneakStartTimes.remove(uuid);
-            if (startTime == null) return;
-
-            if ((System.currentTimeMillis() - startTime) >= 2000) {
-                if (canUseSkill(player, TeamType.APOSTLE_OF_MOON) && checkCooldown(player, "shadow-wings")) {
-                    ItemStack chestplate = player.getInventory().getChestplate();
-                    if (chestplate != null) originalChestplates.put(uuid, chestplate.clone());
-
-                    shadowWingsGlided.put(uuid, false); // Mark as ready to fly, but hasn't yet
-
-                    ItemStack elytra = new ItemStack(Material.ELYTRA);
-                    elytra.addUnsafeEnchantment(Enchantment.DURABILITY, 10);
-                    elytra.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
-                    ItemMeta meta = elytra.getItemMeta();
-                    if (meta instanceof Damageable) {
-                         ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 5);
-                    }
-                    elytra.setItemMeta(meta);
-
-                    player.getInventory().setChestplate(elytra);
-                    player.getInventory().addItem(new ItemStack(Material.FIREWORK_ROCKET));
-                    setCooldown(player, "shadow-wings");
-                }
             }
         }
     }

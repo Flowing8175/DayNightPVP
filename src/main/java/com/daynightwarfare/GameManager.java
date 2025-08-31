@@ -376,8 +376,8 @@ public class GameManager {
                 material = Material.GLASS_PANE; name = "<gold>거울 잔상</gold>"; lore.add("<gray>우클릭하여 적의 뒤로 돌진합니다.</gray>"); break;
             case "moons-chain":
                 material = Material.FLOWER_BANNER_PATTERN; name = "<aqua>달의 사슬</aqua>"; lore.add("<gray>우클릭하여 주변의 적을 속박합니다.</gray>"); break;
-            case "moon-smash":
-                material = Material.NETHER_STAR; name = "<aqua>월광 분쇄</aqua>"; lore.add("<gray>활공 중 웅크려 땅을 내리칩니다.</gray>"); break;
+            case "shadow-wings":
+                material = Material.FEATHER; name = "<aqua>그림자 날개</aqua>"; lore.add("<gray>우클릭하여 일시적으로 비행합니다.</gray>"); break;
             default:
                 return null;
         }
