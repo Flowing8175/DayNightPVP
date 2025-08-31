@@ -87,6 +87,8 @@ public class GameManager {
         playerTeams.clear();
         alivePlayers.clear();
 
+        resetPlayerDisplayNames();
+
         setState(GameState.WAITING);
         Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<red>게임이 강제 종료되어 초기화되었습니다.</red>"));
     }
@@ -135,8 +137,9 @@ public class GameManager {
         for(Player player : onlinePlayers) {
             alivePlayers.add(player.getUniqueId());
             TeamType team = getPlayerTeam(player);
+            updatePlayerDisplayName(player);
             String teamColor = team == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua";
-            player.sendMessage(MiniMessage.miniMessage().deserialize("<gray>당신은 <" + teamColor + ">" + team.getDisplayName() + "</" + teamColor + "> 팀입니다.</gray>"));
+            player.sendMessage(MiniMessage.miniMessage().deserialize("<gray>당신은 <" + teamColor + ">[" + team.getDisplayName() + "]</" + teamColor + "> 팀입니다.</gray>"));
         }
     }
 
@@ -161,8 +164,8 @@ public class GameManager {
             TeamType team = getPlayerTeam(player);
             Location base = (team == TeamType.APOSTLE_OF_LIGHT) ? lightTeamBase : moonTeamBase;
 
-            int offsetX = random.nextInt(21) - 10;
-            int offsetZ = random.nextInt(21) - 10;
+            int offsetX = random.nextInt(31) - 15;
+            int offsetZ = random.nextInt(31) - 15;
 
             double finalX = base.getX() + offsetX;
             double finalZ = base.getZ() + offsetZ;
@@ -336,6 +339,23 @@ public class GameManager {
                     player.getInventory().addItem(skillItem);
                 }
             }
+        }
+    }
+
+    private void updatePlayerDisplayName(Player player) {
+        TeamType team = getPlayerTeam(player);
+        if (team == null) {
+            player.displayName(Component.text(player.getName()));
+            return;
+        }
+        String teamColor = team == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua";
+        Component prefix = MiniMessage.miniMessage().deserialize("<" + teamColor + ">[" + team.getDisplayName() + "] ");
+        player.displayName(prefix.append(Component.text(player.getName())));
+    }
+
+    private void resetPlayerDisplayNames() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.displayName(Component.text(player.getName()));
         }
     }
 
