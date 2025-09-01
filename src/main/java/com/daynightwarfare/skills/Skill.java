@@ -11,6 +11,7 @@ import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -94,6 +95,9 @@ public abstract class Skill implements Listener {
                 .map(line -> miniMessage.deserialize(line).decoration(TextDecoration.ITALIC, false))
                 .collect(Collectors.toList());
         meta.lore(loreComponents);
+
+        meta.setUnbreakable(true);
+        meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
 
         NamespacedKey key = new NamespacedKey(plugin, "skill_id");
         meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, id);

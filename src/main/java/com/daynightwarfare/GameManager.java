@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import java.util.List;
 import java.util.Comparator;
 import java.util.ArrayList;
+import java.util.Set;
 
 
 public class GameManager {
@@ -330,5 +331,38 @@ public class GameManager {
 
     public Location getMoonTeamBaseLocation() {
         return moonTeamBaseLocation;
+    }
+
+    public void checkWinCondition() {
+        if (state != GameState.IN_GAME) {
+            return;
+        }
+
+        Set<UUID> alivePlayers = playerManager.getAlivePlayers();
+        if (alivePlayers.isEmpty()) {
+            Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<gold>게임이 무승부로 종료되었습니다! 생존자가 없습니다.</gold>"));
+            resetGame();
+            return;
+        }
+
+        TeamType winningTeam = null;
+        boolean mixedTeams = false;
+        for (UUID playerUUID : alivePlayers) {
+            Player player = Bukkit.getPlayer(playerUUID);
+            if (player == null) continue;
+
+            TeamType team = teamManager.getPlayerTeam(player);
+            if (winningTeam == null) {
+                winningTeam = team;
+            } else if (winningTeam != team) {
+                mixedTeams = true;
+                break;
+            }
+        }
+
+        if (!mixedTeams && winningTeam != null) {
+            Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<" + (winningTeam == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua") + ">" + winningTeam.getDisplayName() + " 팀이 게임에서 승리했습니다!</" + (winningTeam == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua") + ">"));
+            resetGame();
+        }
     }
 }

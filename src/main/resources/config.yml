@@ -1,6 +1,9 @@
 # Grace period duration in minutes
 grace-period-minutes: 15
 
+# Multiplier for the day/night cycle speed. 1.0 is default speed.
+day-night-cycle-multiplier: 2.0
+
 # Survivor Locator Settings
 survivor-locator:
   # Interval in minutes to check for survivors

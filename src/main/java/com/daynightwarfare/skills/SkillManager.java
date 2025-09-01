@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
@@ -76,6 +77,17 @@ public class SkillManager implements Listener {
                 skill.execute(player);
                 skill.setCooldown(player);
             }
+        }
+    }
+
+    @EventHandler
+    public void onPlayerDropItem(PlayerDropItemEvent event) {
+        ItemStack item = event.getItemDrop().getItemStack();
+        if (item == null || !item.hasItemMeta()) {
+            return;
+        }
+        if (item.getItemMeta().getPersistentDataContainer().has(skillIdKey, PersistentDataType.STRING)) {
+            event.setCancelled(true);
         }
     }
 }

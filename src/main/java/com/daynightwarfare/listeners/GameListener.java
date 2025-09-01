@@ -38,6 +38,7 @@ public class GameListener implements Listener {
             // Set to spectator mode after a short delay
             org.bukkit.Bukkit.getScheduler().runTaskLater(DayNightPlugin.getInstance(), () -> {
                 player.setGameMode(GameMode.SPECTATOR);
+                gameManager.checkWinCondition();
             }, 20L);
 
             event.deathMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage()

@@ -4,6 +4,7 @@ import com.daynightwarfare.commands.GameCommand;
 import com.daynightwarfare.listeners.GameListener;
 import com.daynightwarfare.listeners.PlayerJoinListener;
 import com.daynightwarfare.listeners.PlayerQuitListener;
+import com.daynightwarfare.managers.TimeManager;
 import com.daynightwarfare.skills.SkillManager;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -17,6 +18,7 @@ public final class DayNightPlugin extends JavaPlugin {
     private static DayNightPlugin instance;
     private GameManager gameManager;
     private SkillManager skillManager;
+    private TimeManager timeManager;
 
     @Override
     public void onEnable() {
@@ -26,6 +28,7 @@ public final class DayNightPlugin extends JavaPlugin {
 
         this.gameManager = GameManager.getInstance();
         this.skillManager = new SkillManager(this);
+        this.timeManager = new TimeManager(this);
 
 
         getCommand("game").setExecutor(new GameCommand(this));
@@ -79,6 +82,9 @@ public final class DayNightPlugin extends JavaPlugin {
     public void onDisable() {
         if (gameManager != null && gameManager.isGameInProgress()) {
             gameManager.resetGame();
+        }
+        if (timeManager != null) {
+            timeManager.restoreDefaults();
         }
         getLogger().info("DayNightWarfare has been disabled!");
     }

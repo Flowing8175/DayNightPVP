@@ -31,6 +31,18 @@ public class AfterglowSkill extends Skill {
     }
 
     @Override
+    public boolean canUse(Player player) {
+        if (!super.canUse(player)) {
+            return false;
+        }
+        if (player.getWorld().isDayTime()) {
+            player.sendMessage(miniMessage.deserialize("<red>잔광은 밤에만 사용할 수 있습니다.</red>"));
+            return false;
+        }
+        return true;
+    }
+
+    @Override
     public void execute(Player player) {
         if (afterglowTasks.containsKey(player.getUniqueId())) {
             afterglowTasks.get(player.getUniqueId()).cancel();
