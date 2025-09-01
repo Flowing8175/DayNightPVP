@@ -4,6 +4,7 @@ import com.daynightwarfare.DayNightPlugin;
 import com.daynightwarfare.GameManager;
 import com.daynightwarfare.TeamType;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -61,7 +62,11 @@ public class TeamCommand implements SubCommand {
                 return;
             }
             gameManager.getTeamManager().setPlayerPin(target.getUniqueId(), team);
-            sender.sendMessage(miniMessage.deserialize("<green>" + target.getName() + "님을 " + team.getStyledDisplayName() + " 팀에 고정했습니다.</green>"));
+            sender.sendMessage(miniMessage.deserialize(
+                    "<green><player>님을 <team> 팀에 고정했습니다.</green>",
+                    Placeholder.unparsed("player", target.getName()),
+                    Placeholder.component("team", team.getStyledDisplayName())
+            ));
         } else if (action.equals("unpin")) {
             gameManager.getTeamManager().setPlayerPin(target.getUniqueId(), null);
             sender.sendMessage(miniMessage.deserialize("<green>" + target.getName() + "님의 고정을 해제했습니다.</green>"));
