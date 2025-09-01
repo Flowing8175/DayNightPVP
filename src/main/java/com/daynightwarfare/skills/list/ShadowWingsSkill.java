@@ -15,6 +15,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -26,6 +27,7 @@ public class ShadowWingsSkill extends Skill {
     private final Map<UUID, ItemStack> originalChestplates = new HashMap<>();
     private final Map<UUID, Boolean> fireworkUsed = new HashMap<>();
     private final Map<UUID, Boolean> elytraBroken = new HashMap<>();
+    private final Map<UUID, BukkitTask> timeoutTasks = new HashMap<>();
     private final NamespacedKey fireworkKey;
 
     public ShadowWingsSkill() {
@@ -68,11 +70,26 @@ public class ShadowWingsSkill extends Skill {
         fireworkMeta.getPersistentDataContainer().set(fireworkKey, PersistentDataType.BYTE, (byte) 1);
         firework.setItemMeta(fireworkMeta);
         player.getInventory().addItem(firework);
+
+        // Schedule timeout task
+        BukkitTask timeoutTask = plugin.getServer().getScheduler().runTaskLater(plugin, () -> removeElytra(player), 200L); // 10 seconds
+        timeoutTasks.put(uuid, timeoutTask);
+
         return true;
     }
 
     private void removeElytra(Player player) {
         UUID uuid = player.getUniqueId();
+        if (!originalChestplates.containsKey(uuid)) {
+            return; // Already cleaned up
+        }
+
+        // Cancel timeout task if it exists
+        BukkitTask timeoutTask = timeoutTasks.remove(uuid);
+        if (timeoutTask != null) {
+            timeoutTask.cancel();
+        }
+
         ItemStack originalChestplate = originalChestplates.remove(uuid);
         if (player.getInventory().getChestplate() != null && player.getInventory().getChestplate().getType() == Material.ELYTRA) {
             player.getInventory().setChestplate(originalChestplate);
@@ -144,5 +161,7 @@ public class ShadowWingsSkill extends Skill {
         originalChestplates.clear();
         fireworkUsed.clear();
         elytraBroken.clear();
+        timeoutTasks.values().forEach(BukkitTask::cancel);
+        timeoutTasks.clear();
     }
 }
