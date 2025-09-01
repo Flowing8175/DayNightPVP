@@ -6,6 +6,7 @@ import com.daynightwarfare.TeamType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -58,7 +59,10 @@ public abstract class Skill implements Listener {
             return false;
         }
         if (gameManager.getTeamManager().getPlayerTeam(player) != teamType) {
-            player.sendMessage(miniMessage.deserialize("<red>이 스킬은 " + teamType.getStyledDisplayName() + " 팀만 사용할 수 있습니다.</red>"));
+            player.sendMessage(miniMessage.deserialize(
+                    "<red>이 스킬은 <team> 팀만 사용할 수 있습니다.</red>",
+                    Placeholder.component("team", teamType.getStyledDisplayName())
+            ));
             return false;
         }
         return isCooldownFinished(player);

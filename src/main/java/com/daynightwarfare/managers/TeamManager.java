@@ -3,6 +3,7 @@ package com.daynightwarfare.managers;
 import com.daynightwarfare.TeamType;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
@@ -62,7 +63,10 @@ public class TeamManager {
 
         for (Player player : players) {
             TeamType team = getPlayerTeam(player);
-            player.sendMessage(miniMessage.deserialize("<gray>당신은 " + team.getStyledDisplayName() + " 팀입니다.</gray>"));
+            player.sendMessage(miniMessage.deserialize(
+                    "<gray>당신은 <team> 팀입니다.</gray>",
+                    Placeholder.component("team", team.getStyledDisplayName())
+            ));
         }
     }
 

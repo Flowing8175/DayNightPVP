@@ -4,6 +4,7 @@ import com.daynightwarfare.DayNightPlugin;
 import com.daynightwarfare.GameManager;
 import com.daynightwarfare.TeamType;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -91,6 +92,9 @@ public class PlayerManager {
         }
 
         player.sendMessage(miniMessage.deserialize("<green>진행중인 게임에 참여합니다!</green>"));
-        player.sendMessage(miniMessage.deserialize("<gray>당신은 " + assignedTeam.getStyledDisplayName() + " 팀입니다.</gray>"));
+        player.sendMessage(miniMessage.deserialize(
+                "<gray>당신은 <team> 팀입니다.</gray>",
+                Placeholder.component("team", assignedTeam.getStyledDisplayName())
+        ));
     }
 }
