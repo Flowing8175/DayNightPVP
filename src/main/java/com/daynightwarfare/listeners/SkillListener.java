@@ -347,7 +347,6 @@ public class SkillListener implements Listener {
         ItemStack elytra = new ItemStack(Material.ELYTRA);
         elytra.addUnsafeEnchantment(Enchantment.BINDING_CURSE, 1);
         ItemMeta meta = elytra.getItemMeta();
-        meta.setUnbreakable(true);
         if (meta instanceof Damageable) {
             ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 5);
         }
