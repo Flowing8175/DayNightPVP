@@ -25,6 +25,7 @@ public class ShadowWingsSkill extends Skill {
 
     private final Map<UUID, ItemStack> originalChestplates = new HashMap<>();
     private final Map<UUID, Boolean> fireworkUsed = new HashMap<>();
+    private final Map<UUID, Boolean> elytraBroken = new HashMap<>();
     private final NamespacedKey fireworkKey;
 
     public ShadowWingsSkill() {
@@ -51,6 +52,7 @@ public class ShadowWingsSkill extends Skill {
         }
 
         fireworkUsed.put(uuid, false);
+        elytraBroken.put(uuid, false);
 
         ItemStack elytra = new ItemStack(Material.ELYTRA);
         ItemMeta meta = elytra.getItemMeta();
@@ -70,8 +72,11 @@ public class ShadowWingsSkill extends Skill {
     private void removeElytra(Player player) {
         UUID uuid = player.getUniqueId();
         ItemStack originalChestplate = originalChestplates.remove(uuid);
-        player.getInventory().setChestplate(originalChestplate);
+        if (player.getInventory().getChestplate() != null && player.getInventory().getChestplate().getType() == Material.ELYTRA) {
+            player.getInventory().setChestplate(originalChestplate);
+        }
         fireworkUsed.remove(uuid);
+        elytraBroken.remove(uuid);
     }
 
     @EventHandler
@@ -96,7 +101,10 @@ public class ShadowWingsSkill extends Skill {
 
         if (!originalChestplates.containsKey(uuid)) return;
 
-        if (fireworkUsed.getOrDefault(uuid, false) && player.isOnGround()) {
+        boolean usedFirework = fireworkUsed.getOrDefault(uuid, false);
+        boolean isBroken = elytraBroken.getOrDefault(uuid, false);
+
+        if (player.isOnGround() && (usedFirework || isBroken)) {
             removeElytra(player);
         }
     }
@@ -106,7 +114,7 @@ public class ShadowWingsSkill extends Skill {
         Player player = event.getPlayer();
         if (originalChestplates.containsKey(player.getUniqueId())) {
             if (event.getBrokenItem().getType() == Material.ELYTRA) {
-                removeElytra(player);
+                elytraBroken.put(player.getUniqueId(), true);
             }
         }
     }
@@ -133,5 +141,6 @@ public class ShadowWingsSkill extends Skill {
         }
         originalChestplates.clear();
         fireworkUsed.clear();
+        elytraBroken.clear();
     }
 }
