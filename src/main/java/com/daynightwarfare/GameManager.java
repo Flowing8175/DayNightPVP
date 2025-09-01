@@ -1,41 +1,52 @@
 package com.daynightwarfare;
 
+import com.daynightwarfare.managers.PlayerManager;
+import com.daynightwarfare.managers.TeamManager;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.title.Title;
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.World;
+import org.bukkit.WorldBorder;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.util.*;
+import java.util.Objects;
+import java.util.Random;
+import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Comparator;
+import java.util.ArrayList;
+
 
 public class GameManager {
 
     private static GameManager instance;
 
-    private GameState state;
-    private final Map<UUID, TeamType> playerTeams;
-    private final Map<UUID, TeamType> pinnedPlayers;
-    private final Set<UUID> alivePlayers;
+    private final DayNightPlugin plugin;
+    private final TeamManager teamManager;
+    private final PlayerManager playerManager;
 
-    public BukkitTask gracePeriodTask;
-    public BukkitTask survivorLocatorTask;
-    public long gracePeriodEndTime;
+    private GameState state;
+    private BukkitTask gracePeriodTask;
+    private BukkitTask survivorLocatorTask;
+    private long gracePeriodEndTime;
     private Location lightTeamBaseLocation;
     private Location moonTeamBaseLocation;
 
     private GameManager() {
+        this.plugin = DayNightPlugin.getInstance();
+        this.teamManager = new TeamManager();
+        this.playerManager = new PlayerManager(plugin, this, teamManager);
         this.state = GameState.WAITING;
-        this.playerTeams = new HashMap<>();
-        this.pinnedPlayers = new HashMap<>();
-        this.alivePlayers = new HashSet<>();
     }
 
     public static synchronized GameManager getInstance() {
@@ -45,29 +56,13 @@ public class GameManager {
         return instance;
     }
 
-    //<editor-fold desc="State and Team Management">
+    //<editor-fold desc="State Management">
     public GameState getState() {
         return state;
     }
 
     public void setState(GameState state) {
         this.state = state;
-    }
-
-    public Map<UUID, TeamType> getPlayerTeams() {
-        return playerTeams;
-    }
-
-    public void setPlayerTeam(Player player, TeamType team) {
-        playerTeams.put(player.getUniqueId(), team);
-    }
-
-    public TeamType getPlayerTeam(Player player) {
-        return playerTeams.get(player.getUniqueId());
-    }
-
-    public Set<UUID> getAlivePlayers() {
-        return alivePlayers;
     }
 
     public boolean isGameInProgress() {
@@ -86,67 +81,25 @@ public class GameManager {
         gracePeriodTask = null;
         survivorLocatorTask = null;
 
-        playerTeams.clear();
-        alivePlayers.clear();
-
-        resetPlayerDisplayNames();
+        teamManager.clearTeams();
+        playerManager.clearPlayers();
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.setGameMode(GameMode.SURVIVAL);
+            teamManager.resetPlayerDisplayName(player);
         }
 
         setState(GameState.WAITING);
         Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<red>게임이 강제 종료되어 초기화되었습니다.</red>"));
     }
 
-    public void setPlayerPin(UUID uuid, TeamType team) {
-        if (team == null) {
-            pinnedPlayers.remove(uuid);
-        } else {
-            pinnedPlayers.put(uuid, team);
-        }
-    }
-
-    public void assignTeams() {
-        playerTeams.clear();
-        alivePlayers.clear();
-
+    public void assignTeamsAndTeleport() {
         List<Player> onlinePlayers = new ArrayList<>(Bukkit.getOnlinePlayers());
-        List<Player> unassignedPlayers = new ArrayList<>();
-
-        int lightTeamCount = 0;
-        int moonTeamCount = 0;
-
-        // First, assign pinned players who are online
+        teamManager.assignTeams(onlinePlayers);
         for (Player player : onlinePlayers) {
-            UUID uuid = player.getUniqueId();
-            if (pinnedPlayers.containsKey(uuid)) {
-                TeamType team = pinnedPlayers.get(uuid);
-                setPlayerTeam(player, team);
-                if (team == TeamType.APOSTLE_OF_LIGHT) lightTeamCount++;
-                else moonTeamCount++;
-            } else {
-                unassignedPlayers.add(player);
-            }
+            playerManager.addPlayer(player);
         }
-
-        // Shuffle and assign the rest to balance the teams
-        Collections.shuffle(unassignedPlayers);
-        for (Player player : unassignedPlayers) {
-            TeamType team = (lightTeamCount <= moonTeamCount) ? TeamType.APOSTLE_OF_LIGHT : TeamType.APOSTLE_OF_MOON;
-            setPlayerTeam(player, team);
-            if (team == TeamType.APOSTLE_OF_LIGHT) lightTeamCount++;
-            else moonTeamCount++;
-        }
-
-        // Finalize assignments and send messages
-        for(Player player : onlinePlayers) {
-            alivePlayers.add(player.getUniqueId());
-            TeamType team = getPlayerTeam(player);
-            updatePlayerDisplayName(player);
-            String teamColor = team == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua";
-            player.sendMessage(MiniMessage.miniMessage().deserialize("<gray>당신은 <" + teamColor + ">[" + team.getDisplayName() + "]</" + teamColor + "> 팀입니다.</gray>"));
-        }
+        teleportPlayers();
     }
 
     public void teleportPlayers() {
@@ -163,11 +116,11 @@ public class GameManager {
 
         Random random = new Random();
 
-        for (UUID playerUUID : playerTeams.keySet()) {
+        for (UUID playerUUID : teamManager.getPlayerTeams().keySet()) {
             Player player = Bukkit.getPlayer(playerUUID);
             if (player == null) continue;
 
-            TeamType team = getPlayerTeam(player);
+            TeamType team = teamManager.getPlayerTeam(player);
             Location base = (team == TeamType.APOSTLE_OF_LIGHT) ? this.lightTeamBaseLocation : this.moonTeamBaseLocation;
 
             int offsetX = random.nextInt(31) - 15;
@@ -188,7 +141,7 @@ public class GameManager {
         }
     }
 
-    private Block getSafeHighestBlock(World world, int x, int z) {
+    public Block getSafeHighestBlock(World world, int x, int z) {
         for (int y = world.getMaxHeight() - 1; y > world.getMinHeight(); y--) {
             Block block = world.getBlockAt(x, y, z);
             Material type = block.getType();
@@ -216,7 +169,7 @@ public class GameManager {
             public void run() {
                 long remainingMillis = gracePeriodEndTime - System.currentTimeMillis();
                 if (remainingMillis <= 0) {
-                    endGracePeriod(); // This will cancel the task
+                    endGracePeriod();
                     return;
                 }
 
@@ -264,7 +217,7 @@ public class GameManager {
                 MiniMessage.miniMessage().deserialize("<yellow>FIGHT!</yellow>")
         );
 
-        for (UUID playerUUID : getPlayerTeams().keySet()) {
+        for (UUID playerUUID : teamManager.getPlayerTeams().keySet()) {
             Player player = Bukkit.getPlayer(playerUUID);
             if (player != null) {
                 player.showTitle(title);
@@ -275,7 +228,6 @@ public class GameManager {
     }
 
     public void startSurvivorLocator() {
-        DayNightPlugin plugin = DayNightPlugin.getInstance();
         long interval = plugin.getConfig().getLong("survivor-locator.check-interval-minutes", 2) * 60 * 20;
         int triggerCount = plugin.getConfig().getInt("survivor-locator.trigger-player-count", 3);
 
@@ -287,17 +239,17 @@ public class GameManager {
                     return;
                 }
 
-                if (alivePlayers.size() <= triggerCount && alivePlayers.size() > 0) {
+                if (playerManager.getAlivePlayers().size() <= triggerCount && playerManager.getAlivePlayers().size() > 0) {
                     Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<bold><white>--------생존자 위치--------</white></bold>"));
 
-                    List<Player> sortedPlayers = alivePlayers.stream()
+                    List<Player> sortedPlayers = playerManager.getAlivePlayers().stream()
                             .map(Bukkit::getPlayer)
                             .filter(Objects::nonNull)
-                            .sorted(Comparator.comparing(p -> getPlayerTeam(p).ordinal()))
+                            .sorted(Comparator.comparing(p -> teamManager.getPlayerTeam(p).ordinal()))
                             .collect(Collectors.toList());
 
                     for (Player player : sortedPlayers) {
-                        TeamType team = getPlayerTeam(player);
+                        TeamType team = teamManager.getPlayerTeam(player);
                         Location loc = player.getLocation();
                         String teamColor = team == TeamType.APOSTLE_OF_LIGHT ? "<yellow>" : "<aqua>";
                         String message = teamColor + "<bold>" + team.getDisplayName() + "팀 " + player.getName() + "</bold>님의 위치: <white>"
@@ -328,7 +280,7 @@ public class GameManager {
     }
 
     public void supplySkillItems() {
-        for (UUID playerUUID : playerTeams.keySet()) {
+        for (UUID playerUUID : teamManager.getPlayerTeams().keySet()) {
             Player player = Bukkit.getPlayer(playerUUID);
             if (player != null) {
                 supplySkillItems(player);
@@ -341,7 +293,7 @@ public class GameManager {
         String[] moonSkills = {"moons-chain", "shadow-wings"};
 
         player.getInventory().clear();
-        TeamType team = getPlayerTeam(player);
+        TeamType team = teamManager.getPlayerTeam(player);
         if (team == null) return;
 
         String[] skillsToGive = (team == TeamType.APOSTLE_OF_LIGHT) ? sunSkills : moonSkills;
@@ -354,124 +306,29 @@ public class GameManager {
         }
     }
 
-    private void updatePlayerDisplayName(Player player) {
-        TeamType team = getPlayerTeam(player);
-        if (team == null) {
-            player.displayName(Component.text(player.getName()));
-            player.playerListName(Component.text(player.getName()));
-            player.customName(null);
-            player.setCustomNameVisible(false);
-            return;
-        }
-        String teamColor = team == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua";
-        Component prefix = MiniMessage.miniMessage().deserialize("<" + teamColor + ">[" + team.getDisplayName() + "] ");
-        Component newName = prefix.append(Component.text(player.getName()));
-
-        player.displayName(newName);
-        player.playerListName(newName);
-        player.customName(newName);
-        player.setCustomNameVisible(true);
-    }
-
-    private void resetPlayerDisplayNames() {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            player.displayName(Component.text(player.getName()));
-            player.playerListName(Component.text(player.getName()));
-            player.customName(null);
-            player.setCustomNameVisible(false);
-        }
-    }
-
-    public boolean wasPlayerInGame(Player player) {
-        return playerTeams.containsKey(player.getUniqueId());
-    }
-
-    public void handleReconnect(Player player) {
-        updatePlayerDisplayName(player);
-        if (!alivePlayers.contains(player.getUniqueId())) {
-            player.setGameMode(GameMode.SPECTATOR);
-            player.sendMessage(MiniMessage.miniMessage().deserialize("<gray>관전자로 다시 참여했습니다.</gray>"));
-        } else {
-            // Don't clear inventory or re-supply items for reconnecting players
-            if (player.getBedSpawnLocation() != null) {
-                player.teleport(player.getBedSpawnLocation());
-            }
-            // If bed spawn is null, player will spawn at their last location.
-            player.sendMessage(MiniMessage.miniMessage().deserialize("<green>게임에 다시 참여했습니다!</green>"));
-        }
-    }
-
-    public void handleLateJoin(Player player) {
-        // Assign to the smaller team
-        long lightTeamCount = playerTeams.values().stream().filter(t -> t == TeamType.APOSTLE_OF_LIGHT).count();
-        long moonTeamCount = playerTeams.values().stream().filter(t -> t == TeamType.APOSTLE_OF_MOON).count();
-        TeamType assignedTeam = (lightTeamCount <= moonTeamCount) ? TeamType.APOSTLE_OF_LIGHT : TeamType.APOSTLE_OF_MOON;
-
-        setPlayerTeam(player, assignedTeam);
-        alivePlayers.add(player.getUniqueId());
-
-        updatePlayerDisplayName(player);
-        supplySkillItems(player);
-
-        // Teleport to the original team spawn area
-        Location base = (assignedTeam == TeamType.APOSTLE_OF_LIGHT) ? this.lightTeamBaseLocation : this.moonTeamBaseLocation;
-        Random random = new Random();
-        int offsetX = random.nextInt(31) - 15;
-        int offsetZ = random.nextInt(31) - 15;
-        double finalX = base.getX() + offsetX;
-        double finalZ = base.getZ() + offsetZ;
-        Block safeBlock = getSafeHighestBlock(base.getWorld(), (int) finalX, (int) finalZ);
-        if (safeBlock != null) {
-            Location tpLocation = safeBlock.getLocation().add(0.5, 1.5, 0.5);
-            player.teleportAsync(tpLocation);
-        } else {
-            player.teleportAsync(base.getWorld().getSpawnLocation());
-        }
-
-
-        String teamColor = assignedTeam == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua";
-        player.sendMessage(MiniMessage.miniMessage().deserialize("<green>진행중인 게임에 참여합니다!</green>"));
-        player.sendMessage(MiniMessage.miniMessage().deserialize("<gray>당신은 <" + teamColor + ">[" + assignedTeam.getDisplayName() + "]</" + teamColor + "> 팀입니다.</gray>"));
-    }
-
-
-
     public ItemStack createSkillItem(String skillId) {
-        Material material;
-        String name;
-        List<String> lore = new ArrayList<>();
-        DayNightPlugin plugin = DayNightPlugin.getInstance();
-
-        switch (skillId) {
-            case "solar-flare":
-                material = Material.GLOWSTONE_DUST; name = "<gold>태양 섬광</gold>"; lore.add("<gray>우클릭하여 눈을 멀게 하는 빛을 방출합니다.</gray>"); break;
-            case "suns-spear":
-                material = Material.GOLDEN_SWORD; name = "<gold>태양의 창</gold>"; lore.add("<gray>우클릭하여 빛의 창을 던집니다.</gray>"); break;
-            case "afterglow":
-                material = Material.TORCH; name = "<gold>잔광</gold>"; lore.add("<gray>우클릭하여 주변의 적을 불태웁니다.</gray>"); break;
-            case "mirror-dash":
-                material = Material.GLASS_PANE; name = "<gold>거울 잔상</gold>"; lore.add("<gray>우클릭하여 적의 뒤로 돌진합니다.</gray>"); break;
-            case "moons-chain":
-                material = Material.FLOWER_BANNER_PATTERN; name = "<aqua>달의 사슬</aqua>"; lore.add("<gray>우클릭하여 주변의 적을 속박합니다.</gray>"); break;
-            case "shadow-wings":
-                material = Material.FEATHER; name = "<aqua>그림자 날개</aqua>"; lore.add("<gray>우클릭하여 일시적으로 비행합니다.</gray>"); break;
-            default:
-                return null;
+        if (plugin.getSkillManager() != null) {
+            com.daynightwarfare.skills.Skill skill = plugin.getSkillManager().getSkill(skillId);
+            if (skill != null) {
+                return skill.createSkillItem();
+            }
         }
+        return null;
+    }
 
-        ItemStack item = new ItemStack(material);
-        ItemMeta meta = item.getItemMeta();
-        if (material == Material.GOLDEN_SWORD || material == Material.FEATHER) { // Feather is for Shadow Wings which gives an Elytra
-            meta.setUnbreakable(true);
-        }
-        meta.displayName(MiniMessage.miniMessage().deserialize(name).decoration(TextDecoration.ITALIC, false));
-        List<Component> loreComponents = lore.stream()
-                .map(line -> MiniMessage.miniMessage().deserialize(line).decoration(TextDecoration.ITALIC, false))
-                .collect(Collectors.toList());
-        meta.lore(loreComponents);
-        NamespacedKey key = new NamespacedKey(plugin, "skill_id");
-        meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, skillId);
-        item.setItemMeta(meta);
-        return item;
+    public TeamManager getTeamManager() {
+        return teamManager;
+    }
+
+    public PlayerManager getPlayerManager() {
+        return playerManager;
+    }
+
+    public Location getLightTeamBaseLocation() {
+        return lightTeamBaseLocation;
+    }
+
+    public Location getMoonTeamBaseLocation() {
+        return moonTeamBaseLocation;
     }
 }

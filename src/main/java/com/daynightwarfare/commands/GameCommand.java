@@ -1,279 +1,94 @@
 package com.daynightwarfare.commands;
 
 import com.daynightwarfare.DayNightPlugin;
-import com.daynightwarfare.GameManager;
-import com.daynightwarfare.GameState;
-import com.daynightwarfare.TeamType;
-import net.kyori.adventure.text.format.TextDecoration;
+import com.daynightwarfare.commands.subcommands.GiveCommand;
+import com.daynightwarfare.commands.subcommands.GraceCommand;
+import com.daynightwarfare.commands.subcommands.StartCommand;
+import com.daynightwarfare.commands.subcommands.StopCommand;
+import com.daynightwarfare.commands.subcommands.SubCommand;
+import com.daynightwarfare.commands.subcommands.TeamCommand;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import org.bukkit.Bukkit;
-import org.bukkit.Sound;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
-import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class GameCommand implements CommandExecutor, TabCompleter {
 
-    private final DayNightPlugin plugin;
-    private final GameManager gameManager;
-    private final MiniMessage miniMessage;
+    private final Map<String, SubCommand> subCommands = new HashMap<>();
+    private final MiniMessage miniMessage = MiniMessage.miniMessage();
 
     public GameCommand(DayNightPlugin plugin) {
-        this.plugin = plugin;
-        this.gameManager = plugin.getGameManager();
-        this.miniMessage = MiniMessage.miniMessage();
+        registerSubCommand(new StartCommand(plugin));
+        registerSubCommand(new StopCommand(plugin));
+        registerSubCommand(new GraceCommand(plugin));
+        registerSubCommand(new TeamCommand(plugin));
+        registerSubCommand(new GiveCommand(plugin));
+    }
+
+    private void registerSubCommand(SubCommand subCommand) {
+        subCommands.put(subCommand.getName().toLowerCase(), subCommand);
     }
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage(miniMessage.deserialize("<red>사용법: /game <start|stop|grace|team|give></red>"));
+            sendUsage(sender);
             return true;
         }
 
-        String subCommand = args[0].toLowerCase();
+        String subCommandName = args[0].toLowerCase();
+        SubCommand subCommand = subCommands.get(subCommandName);
 
-        switch (subCommand) {
-            case "start":
-                handleStart(sender);
-                break;
-            case "stop":
-                handleStop(sender);
-                break;
-            case "grace":
-                handleGrace(sender, args);
-                break;
-            case "team":
-                handleTeam(sender, args);
-                break;
-            case "give":
-                handleGive(sender, args);
-                break;
-            default:
-                sender.sendMessage(miniMessage.deserialize("<red>알 수 없는 명령어입니다. 사용법: /game <start|stop|grace|team|give></red>"));
-                break;
+        if (subCommand == null) {
+            sendUsage(sender);
+            return true;
         }
 
+        if (subCommand.getPermission() != null && !sender.hasPermission(subCommand.getPermission())) {
+            sender.sendMessage(miniMessage.deserialize("<red>You do not have permission to use this command.</red>"));
+            return true;
+        }
+
+        subCommand.execute(sender, args);
         return true;
     }
 
-    private void handleStart(CommandSender sender) {
-        if (!sender.hasPermission("daynight.admin.start")) {
-            sender.sendMessage(miniMessage.deserialize("<red>게임을 시작할 권한이 없습니다.</red>"));
-            return;
-        }
-        if (gameManager.getState() != GameState.WAITING) {
-            sender.sendMessage(miniMessage.deserialize("<red>게임이 이미 진행 중이거나 시작 중입니다.</red>"));
-            return;
-        }
-        gameManager.setState(GameState.COUNTDOWN);
-        new BukkitRunnable() {
-            int i = 5;
-            @Override
-            public void run() {
-                if (i > 0) {
-                    Bukkit.broadcast(miniMessage.deserialize("<yellow>게임 시작까지 <red>" + i + "</red>초...</yellow>"));
-                    for (Player player : Bukkit.getOnlinePlayers()) {
-                        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-                    }
-                    i--;
-                } else {
-                    this.cancel();
-                    Bukkit.broadcast(miniMessage.deserialize("<yellow>게임이 시작되었습니다!</yellow>"));
-                    gameManager.assignTeams();
-                    gameManager.supplySkillItems();
-                    gameManager.teleportPlayers();
-                    long graceMinutes = plugin.getConfig().getLong("grace-period-minutes", 15);
-                    gameManager.startGracePeriod(graceMinutes);
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 20L);
-    }
-
-    private void handleStop(CommandSender sender) {
-        if (!sender.hasPermission("daynight.admin.stop")) {
-            sender.sendMessage(miniMessage.deserialize("<red>게임을 중지할 권한이 없습니다.</red>"));
-            return;
-        }
-        if (!gameManager.isGameInProgress()) {
-            sender.sendMessage(miniMessage.deserialize("<red>중지할 게임이 없습니다.</red>"));
-            return;
-        }
-        gameManager.resetGame();
-    }
-
-    private void handleGrace(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("daynight.admin.grace")) {
-            sender.sendMessage(miniMessage.deserialize("<red>무적 시간을 변경할 권한이 없습니다.</red>"));
-            return;
-        }
-        if (args.length < 2) {
-            sender.sendMessage(miniMessage.deserialize("<red>사용법: /game grace <add|subtract|end> [분]</red>"));
-            return;
-        }
-        String graceAction = args[1].toLowerCase();
-        int minutes = 0;
-        if (args.length > 2) {
-            try {
-                minutes = Integer.parseInt(args[2]);
-                if (minutes <= 0) {
-                    sender.sendMessage(miniMessage.deserialize("<red>분은 양수여야 합니다.</red>"));
-                    return;
-                }
-            } catch (NumberFormatException e) {
-                sender.sendMessage(miniMessage.deserialize("<red>올바르지 않은 숫자입니다.</red>"));
-                return;
-            }
-        }
-        switch (graceAction) {
-            case "add":
-                if (minutes == 0) {
-                    sender.sendMessage(miniMessage.deserialize("<red>사용법: /game grace add <분></red>"));
-                    return;
-                }
-                if (!gameManager.isGracePeriodActive()) {
-                    gameManager.startGracePeriod(minutes);
-                    sender.sendMessage(miniMessage.deserialize("<green>무적 시간이 " + minutes + "분으로 시작되었습니다.</green>"));
-                } else {
-                    gameManager.addGracePeriodTime(minutes);
-                    sender.sendMessage(miniMessage.deserialize("<green>무적 시간이 " + minutes + "분 추가되었습니다.</green>"));
-                }
-                break;
-            case "subtract":
-                 if (minutes == 0) {
-                    sender.sendMessage(miniMessage.deserialize("<red>사용법: /game grace subtract <분></red>"));
-                    return;
-                }
-                if (!gameManager.isGracePeriodActive()) {
-                    sender.sendMessage(miniMessage.deserialize("<red>무적 시간이 활성화되어 있지 않아 시간을 뺄 수 없습니다.</red>"));
-                    return;
-                }
-                gameManager.subtractGracePeriodTime(minutes);
-                sender.sendMessage(miniMessage.deserialize("<green>무적 시간이 " + minutes + "분 감소되었습니다.</green>"));
-                break;
-            case "end":
-                if (!gameManager.isGracePeriodActive()) {
-                    sender.sendMessage(miniMessage.deserialize("<red>무적 시간이 활성화되어 있지 않습니다.</red>"));
-                    return;
-                }
-                gameManager.endGracePeriod();
-                sender.sendMessage(miniMessage.deserialize("<green>무적 시간이 종료되었습니다.</green>"));
-                break;
-            default:
-                sender.sendMessage(miniMessage.deserialize("<red>알 수 없는 행동입니다. 사용법: /game grace <add|subtract|end></red>"));
-                break;
-        }
-    }
-
-    private void handleTeam(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("daynight.admin.team")) {
-            sender.sendMessage(miniMessage.deserialize("<red>팀을 관리할 권한이 없습니다.</red>"));
-            return;
-        }
-        if (args.length < 3) {
-            sender.sendMessage(miniMessage.deserialize("<red>사용법: /game team <pin|unpin> <플레이어> [팀]</red>"));
-            return;
-        }
-
-        String action = args[1].toLowerCase();
-        Player target = Bukkit.getPlayer(args[2]);
-        if (target == null) {
-            sender.sendMessage(miniMessage.deserialize("<red>플레이어를 찾을 수 없습니다.</red>"));
-            return;
-        }
-
-        if (action.equals("pin")) {
-            if (args.length < 4) {
-                sender.sendMessage(miniMessage.deserialize("<red>사용법: /game team pin <플레이어> <Light|Moon></red>"));
-                return;
-            }
-            String teamName = args[3].toLowerCase();
-            TeamType team;
-            if (teamName.startsWith("l")) {
-                team = TeamType.APOSTLE_OF_LIGHT;
-            } else if (teamName.startsWith("m") || teamName.startsWith("s")) {
-                team = TeamType.APOSTLE_OF_MOON;
-            } else {
-                sender.sendMessage(miniMessage.deserialize("<red>올바르지 않은 팀입니다. 'Light' 또는 'Moon'을 사용하세요.</red>"));
-                return;
-            }
-            gameManager.setPlayerPin(target.getUniqueId(), team);
-            sender.sendMessage(miniMessage.deserialize("<green>" + target.getName() + "님을 " + team.getDisplayName() + " 팀에 고정했습니다.</green>"));
-        } else if (action.equals("unpin")) {
-            gameManager.setPlayerPin(target.getUniqueId(), null);
-            sender.sendMessage(miniMessage.deserialize("<green>" + target.getName() + "님의 고정을 해제했습니다.</green>"));
-        } else {
-            sender.sendMessage(miniMessage.deserialize("<red>사용법: /game team <pin|unpin> <플레이어> [팀]</red>"));
-        }
-    }
-
-    private void handleGive(CommandSender sender, String[] args) {
-        if (!sender.hasPermission("daynight.admin.give")) {
-            sender.sendMessage(miniMessage.deserialize("<red>You do not have permission to use this command.</red>"));
-            return;
-        }
-        if (args.length < 2) {
-            sender.sendMessage(miniMessage.deserialize("<red>사용법: /game give <skill_id></red>"));
-            return;
-        }
-        if (!(sender instanceof Player)) {
-            sender.sendMessage(miniMessage.deserialize("<red>This command can only be run by a player.</red>"));
-            return;
-        }
-        Player player = (Player) sender;
-        String skillId = args[1].toLowerCase();
-
-        ItemStack skillItem = gameManager.createSkillItem(skillId);
-
-        if (skillItem == null) {
-            sender.sendMessage(miniMessage.deserialize("<red>알 수 없는 스킬 ID입니다.</red>"));
-            return;
-        }
-
-        player.getInventory().addItem(skillItem);
-        sender.sendMessage(miniMessage.deserialize("<green>" + skillId + " 아이템을 받았습니다.</green>"));
+    private void sendUsage(CommandSender sender) {
+        String usage = subCommands.keySet().stream().collect(Collectors.joining("|"));
+        sender.sendMessage(miniMessage.deserialize("<red>사용법: /game <" + usage + "></red>"));
     }
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
-        List<String> completions = new ArrayList<>();
-        String currentArg = args[args.length - 1].toLowerCase();
-
         if (args.length == 1) {
-            if (sender.hasPermission("daynight.admin.start")) completions.add("start");
-            if (sender.hasPermission("daynight.admin.stop")) completions.add("stop");
-            if (sender.hasPermission("daynight.admin.grace")) completions.add("grace");
-            if (sender.hasPermission("daynight.admin.team")) completions.add("team");
-            if (sender.hasPermission("daynight.admin.give")) completions.add("give");
-        } else if (args.length == 2) {
-            if (args[0].equalsIgnoreCase("grace") && sender.hasPermission("daynight.admin.grace")) {
-                completions.addAll(Arrays.asList("add", "subtract", "end"));
-            } else if (args[0].equalsIgnoreCase("team") && sender.hasPermission("daynight.admin.team")) {
-                completions.addAll(Arrays.asList("pin", "unpin"));
-            } else if (args[0].equalsIgnoreCase("give") && sender.hasPermission("daynight.admin.give")) {
-                completions.addAll(Arrays.asList("solar-flare", "suns-spear", "afterglow", "mirror-dash", "moons-chain", "shadow-wings"));
-            }
-        } else if (args.length == 3 && args[0].equalsIgnoreCase("team")) {
-             return Bukkit.getOnlinePlayers().stream()
-                        .map(Player::getName)
-                        .filter(name -> name.toLowerCase().startsWith(currentArg))
-                        .collect(Collectors.toList());
-        } else if (args.length == 4 && args[1].equalsIgnoreCase("pin")) {
-            completions.addAll(Arrays.asList("Light", "Moon"));
+            return subCommands.values().stream()
+                    .filter(sub -> sub.getPermission() == null || sender.hasPermission(sub.getPermission()))
+                    .map(SubCommand::getName)
+                    .filter(name -> name.toLowerCase().startsWith(args[0].toLowerCase()))
+                    .collect(Collectors.toList());
         }
 
-        return completions.stream()
-                .filter(s -> s.toLowerCase().startsWith(currentArg))
-                .collect(Collectors.toList());
+        if (args.length > 1) {
+            SubCommand subCommand = subCommands.get(args[0].toLowerCase());
+            if (subCommand != null) {
+                if (subCommand.getPermission() == null || sender.hasPermission(subCommand.getPermission())) {
+                    List<String> completions = subCommand.onTabComplete(sender, args);
+                    if (completions != null) {
+                        return completions;
+                    }
+                }
+            }
+        }
+
+        return new ArrayList<>();
     }
 }

@@ -29,11 +29,11 @@ public class GameListener implements Listener {
     @EventHandler
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
-        if (gameManager.getPlayerTeams().containsKey(player.getUniqueId())) {
+        if (gameManager.getTeamManager().getPlayerTeam(player) != null) {
             event.getDrops().clear();
             event.setDroppedExp(0);
 
-            gameManager.getAlivePlayers().remove(player.getUniqueId());
+            gameManager.getPlayerManager().removePlayer(player);
 
             // Set to spectator mode after a short delay
             org.bukkit.Bukkit.getScheduler().runTaskLater(DayNightPlugin.getInstance(), () -> {
