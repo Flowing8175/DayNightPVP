@@ -34,9 +34,9 @@ public abstract class Skill implements Listener {
     private final List<String> lore;
     private final TeamType teamType;
     private final Material material;
-    private final long cooldown; // In seconds
+    private final long defaultCooldown;
 
-    public Skill(String id, String name, List<String> lore, TeamType teamType, Material material, long cooldown) {
+    public Skill(String id, String name, List<String> lore, TeamType teamType, Material material, long defaultCooldown) {
         this.plugin = DayNightPlugin.getInstance();
         this.gameManager = GameManager.getInstance();
         this.miniMessage = MiniMessage.miniMessage();
@@ -45,7 +45,7 @@ public abstract class Skill implements Listener {
         this.lore = lore;
         this.teamType = teamType;
         this.material = material;
-        this.cooldown = cooldown;
+        this.defaultCooldown = defaultCooldown;
     }
 
     public String getId() {
@@ -70,6 +70,7 @@ public abstract class Skill implements Listener {
     }
 
     public boolean isCooldownFinished(Player player) {
+        long cooldownMillis = plugin.getConfig().getLong("cooldowns." + this.id, this.defaultCooldown) * 1000L;
         if (cooldowns.containsKey(player.getUniqueId())) {
             long expires = cooldowns.get(player.getUniqueId());
             if (System.currentTimeMillis() < expires) {
@@ -82,7 +83,8 @@ public abstract class Skill implements Listener {
     }
 
     public void setCooldown(Player player) {
-        cooldowns.put(player.getUniqueId(), System.currentTimeMillis() + (cooldown * 1000L));
+        long cooldownMillis = plugin.getConfig().getLong("cooldowns." + this.id, this.defaultCooldown) * 1000L;
+        cooldowns.put(player.getUniqueId(), System.currentTimeMillis() + cooldownMillis);
     }
 
     public ItemStack createSkillItem() {
