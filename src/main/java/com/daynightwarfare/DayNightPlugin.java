@@ -68,12 +68,20 @@ public final class DayNightPlugin extends JavaPlugin {
             TeamType team = gameManager.getTeamManager().getPlayerTeam(player);
             if (team == null) continue;
 
-            boolean shouldHaveEffect = (team == TeamType.APOSTLE_OF_LIGHT && isDay) || (team == TeamType.APOSTLE_OF_MOON && !isDay);
-
-            if (shouldHaveEffect) {
+            // Strength buff logic
+            boolean shouldHaveStrength = (team == TeamType.APOSTLE_OF_LIGHT && isDay) || (team == TeamType.APOSTLE_OF_MOON && !isDay);
+            if (shouldHaveStrength) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, 7 * 20, 0, true, false, true));
             } else {
                 player.removePotionEffect(PotionEffectType.INCREASE_DAMAGE);
+            }
+
+            // Night vision logic
+            boolean shouldHaveNightVision = (team == TeamType.APOSTLE_OF_MOON && !isDay);
+            if (shouldHaveNightVision) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION, 20 * 20, 0, true, false, true));
+            } else {
+                player.removePotionEffect(PotionEffectType.NIGHT_VISION);
             }
         }
     }

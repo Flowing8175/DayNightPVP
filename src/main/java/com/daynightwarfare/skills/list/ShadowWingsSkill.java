@@ -56,8 +56,9 @@ public class ShadowWingsSkill extends Skill {
 
         ItemStack elytra = new ItemStack(Material.ELYTRA);
         ItemMeta meta = elytra.getItemMeta();
+        meta.addEnchant(Enchantment.BINDING_CURSE, 1, true);
         if (meta instanceof Damageable) {
-            ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 1);
+            ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 3);
         }
         elytra.setItemMeta(meta);
         player.getInventory().setChestplate(elytra);
