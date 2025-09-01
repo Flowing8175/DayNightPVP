@@ -35,11 +35,12 @@ public class SunsSpearSkill extends Skill {
     }
 
     @Override
-    public void execute(Player player) {
+    public boolean execute(Player player) {
         Vector velocity = player.getEyeLocation().getDirection().multiply(3);
         Trident spear = player.launchProjectile(Trident.class, velocity);
         spear.setGlowing(true);
         spear.getPersistentDataContainer().set(sunsSpearKey, PersistentDataType.STRING, player.getUniqueId().toString());
+        return true;
     }
 
     @EventHandler

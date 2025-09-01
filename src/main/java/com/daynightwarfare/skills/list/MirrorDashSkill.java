@@ -22,7 +22,7 @@ public class MirrorDashSkill extends Skill {
     }
 
     @Override
-    public void execute(Player player) {
+    public boolean execute(Player player) {
         Vector playerDirection = player.getEyeLocation().getDirection();
         playerDirection.setY(0).normalize();
 
@@ -55,11 +55,14 @@ public class MirrorDashSkill extends Skill {
 
             if (behind.getBlock().isPassable() && behind.clone().add(0, 1, 0).getBlock().isPassable()) {
                 player.teleport(behind);
+                return true;
             } else {
                 player.sendMessage(miniMessage.deserialize("<red>대상을 추적할 수 없습니다.</red>"));
+                 return false;
             }
         } else {
             player.sendMessage(miniMessage.deserialize("<red>시야에 대상이 없습니다.</red>"));
+            return false;
         }
     }
 }

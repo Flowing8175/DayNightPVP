@@ -25,7 +25,7 @@ public class SolarFlareSkill extends Skill {
     }
 
     @Override
-    public void execute(Player player) {
+    public boolean execute(Player player) {
         for (Player targetPlayer : Bukkit.getOnlinePlayers()) {
             if (targetPlayer.equals(player)) continue;
             if (targetPlayer.getWorld() != player.getWorld() || targetPlayer.getLocation().distanceSquared(player.getLocation()) > 15 * 15) continue;
@@ -39,6 +39,7 @@ public class SolarFlareSkill extends Skill {
             }
         }
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_TWINKLE, 1f, 1f);
+        return true;
     }
 
     private TeamType getTeamType() {

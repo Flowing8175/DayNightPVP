@@ -46,17 +46,17 @@ public class AfterglowSkill extends Skill {
     }
 
     @Override
-    public void execute(Player player) {
+    public boolean execute(Player player) {
         if (afterglowTasks.containsKey(player.getUniqueId())) {
             afterglowTasks.get(player.getUniqueId()).cancel();
             removeLightBlock(player);
         }
 
         BukkitTask task = new BukkitRunnable() {
-            int ticks = 0;
+            int executions = 0;
             @Override
             public void run() {
-                if (!player.isOnline() || ticks >= 100) { // Lasts 5 seconds
+                if (!player.isOnline() || executions >= 12) { // 12 executions * 10 ticks = 120 ticks = 6 seconds
                     this.cancel();
                     removeLightBlock(player);
                     afterglowTasks.remove(player.getUniqueId());
@@ -75,11 +75,12 @@ public class AfterglowSkill extends Skill {
                         }
                     }
                 }
-                ticks++;
+                executions++;
             }
         }.runTaskTimer(plugin, 0L, 10L); // Runs every 0.5 seconds
 
         afterglowTasks.put(player.getUniqueId(), task);
+        return true;
     }
 
     private void updateLightBlock(Player player) {

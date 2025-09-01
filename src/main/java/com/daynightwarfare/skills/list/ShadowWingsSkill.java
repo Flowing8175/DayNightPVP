@@ -41,7 +41,7 @@ public class ShadowWingsSkill extends Skill {
     }
 
     @Override
-    public void execute(Player player) {
+    public boolean execute(Player player) {
         UUID uuid = player.getUniqueId();
         // Clear any previous state just in case
         removeElytra(player);
@@ -68,6 +68,7 @@ public class ShadowWingsSkill extends Skill {
         fireworkMeta.getPersistentDataContainer().set(fireworkKey, PersistentDataType.BYTE, (byte) 1);
         firework.setItemMeta(fireworkMeta);
         player.getInventory().addItem(firework);
+        return true;
     }
 
     private void removeElytra(Player player) {

@@ -24,7 +24,7 @@ public class MoonsChainSkill extends Skill {
     }
 
     @Override
-    public void execute(Player player) {
+    public boolean execute(Player player) {
         for (Entity entity : player.getNearbyEntities(8, 8, 8)) {
             if (entity instanceof Player) {
                 Player targetPlayer = (Player) entity;
@@ -37,5 +37,6 @@ public class MoonsChainSkill extends Skill {
             }
         }
         player.getWorld().playSound(player.getLocation(), Sound.BLOCK_CHAIN_BREAK, 1f, 0.7f);
+        return true;
     }
 }

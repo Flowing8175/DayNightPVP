@@ -74,8 +74,9 @@ public class SkillManager implements Listener {
             event.setCancelled(true);
             Player player = event.getPlayer();
             if (skill.canUse(player)) {
-                skill.execute(player);
-                skill.setCooldown(player);
+                if (skill.execute(player)) {
+                    skill.setCooldown(player);
+                }
             }
         }
     }

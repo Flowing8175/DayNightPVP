@@ -52,7 +52,7 @@ public abstract class Skill implements Listener {
         return id;
     }
 
-    public abstract void execute(Player player);
+    public abstract boolean execute(Player player);
 
     public boolean canUse(Player player) {
         if (!gameManager.isGameInProgress() || gameManager.isGracePeriodActive()) {
