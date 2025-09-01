@@ -75,7 +75,7 @@ public class GameManager {
     }
     //</editor-fold>
 
-    public void resetGame() {
+    public void resetGame(boolean forced) {
         if (gracePeriodTask != null) gracePeriodTask.cancel();
         if (survivorLocatorTask != null) survivorLocatorTask.cancel();
 
@@ -95,7 +95,9 @@ public class GameManager {
         }
 
         setState(GameState.WAITING);
-        Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<red>게임이 강제 종료되어 초기화되었습니다.</red>"));
+        if (forced) {
+            Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<red>게임이 강제 종료되어 초기화되었습니다.</red>"));
+        }
     }
 
     public void assignTeamsAndTeleport() {
@@ -344,8 +346,15 @@ public class GameManager {
 
         Set<UUID> alivePlayers = playerManager.getAlivePlayers();
         if (alivePlayers.isEmpty()) {
-            Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<gold>게임이 무승부로 종료되었습니다! 생존자가 없습니다.</gold>"));
-            resetGame();
+            Title title = Title.title(
+                    MiniMessage.miniMessage().deserialize("<gold>무승부</gold>"),
+                    MiniMessage.miniMessage().deserialize("<gray>생존자가 없습니다!</gray>")
+            );
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.showTitle(title);
+                player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
+            }
+            resetGame(false);
             return;
         }
 
@@ -365,8 +374,15 @@ public class GameManager {
         }
 
         if (!mixedTeams && winningTeam != null) {
-            Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<" + (winningTeam == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua") + ">" + winningTeam.getDisplayName() + " 팀이 게임에서 승리했습니다!</" + (winningTeam == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua") + ">"));
-            resetGame();
+            Title title = Title.title(
+                    winningTeam.getStyledDisplayName().append(Component.text(" 팀 승리!")),
+                    MiniMessage.miniMessage().deserialize("<gray>게임이 종료되었습니다.</gray>")
+            );
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.showTitle(title);
+                player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
+            }
+            resetGame(false);
         }
     }
 }

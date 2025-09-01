@@ -89,7 +89,7 @@ public final class DayNightPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         if (gameManager != null && gameManager.isGameInProgress()) {
-            gameManager.resetGame();
+            gameManager.resetGame(true);
         }
         if (timeManager != null) {
             timeManager.restoreDefaults();

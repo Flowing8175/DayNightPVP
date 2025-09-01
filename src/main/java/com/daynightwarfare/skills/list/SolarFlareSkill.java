@@ -41,8 +41,4 @@ public class SolarFlareSkill extends Skill {
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_FIREWORK_ROCKET_TWINKLE, 1f, 1f);
         return true;
     }
-
-    private TeamType getTeamType() {
-        return TeamType.APOSTLE_OF_LIGHT;
-    }
 }

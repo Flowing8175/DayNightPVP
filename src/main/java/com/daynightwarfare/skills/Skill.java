@@ -52,6 +52,10 @@ public abstract class Skill implements Listener {
         return id;
     }
 
+    public TeamType getTeamType() {
+        return teamType;
+    }
+
     public abstract boolean execute(Player player);
 
     public boolean canUse(Player player) {

@@ -33,7 +33,7 @@ public class StopCommand implements SubCommand {
             sender.sendMessage(miniMessage.deserialize("<red>중지할 게임이 없습니다.</red>"));
             return;
         }
-        gameManager.resetGame();
+        gameManager.resetGame(true);
     }
 
     @Override
