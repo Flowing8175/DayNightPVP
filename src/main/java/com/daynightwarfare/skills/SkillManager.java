@@ -90,4 +90,10 @@ public class SkillManager implements Listener {
             event.setCancelled(true);
         }
     }
+
+    public void cleanUpAllSkills() {
+        for (Skill skill : skills.values()) {
+            skill.cleanUp();
+        }
+    }
 }

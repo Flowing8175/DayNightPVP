@@ -104,4 +104,8 @@ public abstract class Skill implements Listener {
         item.setItemMeta(meta);
         return item;
     }
+
+    public void cleanUp() {
+        // Can be overridden by skills that need cleanup
+    }
 }

@@ -3,14 +3,18 @@ package com.daynightwarfare.skills.list;
 import com.daynightwarfare.TeamType;
 import com.daynightwarfare.skills.Skill;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemBreakEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,7 +24,8 @@ import java.util.UUID;
 public class ShadowWingsSkill extends Skill {
 
     private final Map<UUID, ItemStack> originalChestplates = new HashMap<>();
-    private final Map<UUID, Boolean> shadowWingsGlided = new HashMap<>();
+    private final Map<UUID, Boolean> fireworkUsed = new HashMap<>();
+    private final NamespacedKey fireworkKey;
 
     public ShadowWingsSkill() {
         super(
@@ -31,28 +36,57 @@ public class ShadowWingsSkill extends Skill {
                 Material.FEATHER,
                 60L
         );
+        this.fireworkKey = new NamespacedKey(plugin, "shadow_firework");
     }
 
     @Override
     public void execute(Player player) {
         UUID uuid = player.getUniqueId();
+        // Clear any previous state just in case
+        removeElytra(player);
+
         ItemStack chestplate = player.getInventory().getChestplate();
         if (chestplate != null) {
             originalChestplates.put(uuid, chestplate.clone());
         }
 
-        shadowWingsGlided.put(uuid, false);
+        fireworkUsed.put(uuid, false);
 
         ItemStack elytra = new ItemStack(Material.ELYTRA);
-        elytra.addUnsafeEnchantment(Enchantment.BINDING_CURSE, 1);
         ItemMeta meta = elytra.getItemMeta();
         if (meta instanceof Damageable) {
-            ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 5);
+            ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 1);
         }
         elytra.setItemMeta(meta);
-
         player.getInventory().setChestplate(elytra);
-        player.getInventory().addItem(new ItemStack(Material.FIREWORK_ROCKET));
+
+        ItemStack firework = new ItemStack(Material.FIREWORK_ROCKET);
+        ItemMeta fireworkMeta = firework.getItemMeta();
+        fireworkMeta.getPersistentDataContainer().set(fireworkKey, PersistentDataType.BYTE, (byte) 1);
+        firework.setItemMeta(fireworkMeta);
+        player.getInventory().addItem(firework);
+    }
+
+    private void removeElytra(Player player) {
+        UUID uuid = player.getUniqueId();
+        ItemStack originalChestplate = originalChestplates.remove(uuid);
+        player.getInventory().setChestplate(originalChestplate);
+        fireworkUsed.remove(uuid);
+    }
+
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        Player player = event.getPlayer();
+        if (!originalChestplates.containsKey(player.getUniqueId())) return;
+
+        if (player.isGliding() && event.getAction().isRightClick()) {
+            ItemStack item = event.getItem();
+            if (item != null && item.getType() == Material.FIREWORK_ROCKET && item.hasItemMeta()) {
+                if (item.getItemMeta().getPersistentDataContainer().has(fireworkKey, PersistentDataType.BYTE)) {
+                    fireworkUsed.put(player.getUniqueId(), true);
+                }
+            }
+        }
     }
 
     @EventHandler
@@ -62,24 +96,42 @@ public class ShadowWingsSkill extends Skill {
 
         if (!originalChestplates.containsKey(uuid)) return;
 
-        boolean hasGlided = shadowWingsGlided.getOrDefault(uuid, false);
+        if (fireworkUsed.getOrDefault(uuid, false) && player.isOnGround()) {
+            removeElytra(player);
+        }
+    }
 
-        if (!hasGlided && player.isGliding()) {
-            shadowWingsGlided.put(uuid, true);
-        } else if (hasGlided && !player.isGliding() && player.isOnGround()) {
-            player.getInventory().setChestplate(originalChestplates.remove(uuid));
-            shadowWingsGlided.remove(uuid);
+    @EventHandler
+    public void onPlayerItemBreak(PlayerItemBreakEvent event) {
+        Player player = event.getPlayer();
+        if (originalChestplates.containsKey(player.getUniqueId())) {
+            if (event.getBrokenItem().getType() == Material.ELYTRA) {
+                removeElytra(player);
+            }
         }
     }
 
     @EventHandler
     public void onEntityDamage(EntityDamageEvent event) {
-        if (!(event.getEntity() instanceof Player)) return;
-        Player player = (Player) event.getEntity();
+        if (!(event.getEntity() instanceof Player player)) return;
+        UUID uuid = player.getUniqueId();
 
-        if (event.getCause() == EntityDamageEvent.DamageCause.FALL && originalChestplates.containsKey(player.getUniqueId())) {
-            player.getInventory().setChestplate(originalChestplates.remove(player.getUniqueId()));
-            shadowWingsGlided.remove(player.getUniqueId());
+        if (originalChestplates.containsKey(uuid)) {
+            if (event.getCause() == EntityDamageEvent.DamageCause.FALL) {
+                event.setCancelled(true);
+            }
         }
+    }
+
+    @Override
+    public void cleanUp() {
+        for (UUID uuid : originalChestplates.keySet()) {
+            Player player = plugin.getServer().getPlayer(uuid);
+            if (player != null) {
+                removeElytra(player);
+            }
+        }
+        originalChestplates.clear();
+        fireworkUsed.clear();
     }
 }

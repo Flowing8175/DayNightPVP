@@ -82,6 +82,10 @@ public class GameManager {
         gracePeriodTask = null;
         survivorLocatorTask = null;
 
+        if (plugin.getSkillManager() != null) {
+            plugin.getSkillManager().cleanUpAllSkills();
+        }
+
         teamManager.clearTeams();
         playerManager.clearPlayers();
 
