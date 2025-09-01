@@ -27,6 +27,7 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 import java.util.*;
@@ -36,10 +37,10 @@ public class SkillListener implements Listener {
     private final DayNightPlugin plugin;
     private final GameManager gameManager;
     private final Map<String, Long> cooldowns = new HashMap<>();
-    private final Map<UUID, Long> sneakStartTimes = new HashMap<>();
     private final Map<UUID, ItemStack> originalChestplates = new HashMap<>();
     private final Map<UUID, Boolean> shadowWingsGlided = new HashMap<>();
     private final Map<UUID, Long> friendlyFireWarningCooldowns = new HashMap<>();
+    private final Map<UUID, BukkitTask> afterglowTasks = new HashMap<>();
     private final Set<UUID> skillDisabledPlayers = new HashSet<>();
     private final NamespacedKey skillIdKey;
     private final NamespacedKey moonSmashKey;
@@ -54,6 +55,12 @@ public class SkillListener implements Listener {
         this.moonSmashKey = new NamespacedKey(plugin, "moon_smash_active");
         this.sunsSpearKey = new NamespacedKey(plugin, "suns_spear_id");
         this.miniMessage = MiniMessage.miniMessage();
+    }
+
+    private void dealTrueDamage(LivingEntity target, double amount) {
+        double newHealth = target.getHealth() - amount;
+        target.setHealth(Math.max(0.0, newHealth));
+        target.playEffect(EntityEffect.HURT);
     }
 
     private boolean isSkillItem(ItemStack item, String expectedSkillId) {
@@ -120,13 +127,11 @@ public class SkillListener implements Listener {
             return;
         }
 
-        // Prevent skill sword melee
         ItemStack itemInHand = damager.getInventory().getItemInMainHand();
         if (isSkillItem(itemInHand, "suns-spear")) {
             event.setCancelled(true);
         }
 
-        // Prevent friendly fire
         TeamType damagerTeam = gameManager.getPlayerTeam(damager);
         TeamType victimTeam = gameManager.getPlayerTeam(victim);
 
@@ -186,7 +191,7 @@ public class SkillListener implements Listener {
             TeamType targetTeam = gameManager.getPlayerTeam(targetPlayer);
             if (targetTeam != null && targetTeam != TeamType.APOSTLE_OF_LIGHT) { // Enemy
                 targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20, 0));
-                targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 70, 1)); // 3.5 seconds
+                targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 70, 1));
             } else if (targetTeam == TeamType.APOSTLE_OF_LIGHT) { // Ally
                 targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 80, 0));
             }
@@ -211,11 +216,8 @@ public class SkillListener implements Listener {
         if (!(event.getEntity() instanceof Trident spear)) return;
         if (!spear.getPersistentDataContainer().has(sunsSpearKey, PersistentDataType.STRING)) return;
 
-        Player shooter = Bukkit.getPlayer(UUID.fromString(spear.getPersistentDataContainer().get(sunsSpearKey, PersistentDataType.STRING)));
-        if (shooter == null) return;
-
         if (event.getHitEntity() instanceof LivingEntity target) {
-            target.damage(6, shooter);
+            dealTrueDamage(target, 6.0);
             target.setFireTicks(40);
             target.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 100, 0));
         } else if (event.getHitBlock() != null) {
@@ -231,7 +233,7 @@ public class SkillListener implements Listener {
                         }
                         spear.remove();
                     }
-                }.runTaskLater(plugin, 60L); // 3 seconds
+                }.runTaskLater(plugin, 60L);
             }
         }
          if (spear.isValid()) spear.remove();
@@ -240,12 +242,17 @@ public class SkillListener implements Listener {
     private void handleAfterglow(Player player) {
         if (!canUseSkill(player, TeamType.APOSTLE_OF_LIGHT) || !checkCooldown(player, "afterglow")) return;
 
-        new BukkitRunnable() {
+        if (afterglowTasks.containsKey(player.getUniqueId())) {
+            afterglowTasks.get(player.getUniqueId()).cancel();
+        }
+
+        BukkitTask task = new BukkitRunnable() {
             int ticks = 0;
             @Override
             public void run() {
-                if (ticks >= 10) { // 5 seconds (100 ticks / 10 ticks per run)
+                if (ticks >= 10) {
                     this.cancel();
+                    afterglowTasks.remove(player.getUniqueId());
                     return;
                 }
                 player.getWorld().spawnParticle(Particle.FLAME, player.getLocation().add(0, 1, 0), 20, 0.5, 0.5, 0.5, 0.01);
@@ -255,7 +262,7 @@ public class SkillListener implements Listener {
                     if (targetPlayer.getLocation().distanceSquared(player.getLocation()) > 6 * 6) continue;
 
                     if (gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_LIGHT) {
-                        targetPlayer.damage(1.0); // Sourceless damage to prevent knockback
+                        dealTrueDamage(targetPlayer, 1.0);
                     }
                 }
 
@@ -263,6 +270,7 @@ public class SkillListener implements Listener {
             }
         }.runTaskTimer(plugin, 0L, 10L);
 
+        afterglowTasks.put(player.getUniqueId(), task);
         setCooldown(player, "afterglow");
     }
 
@@ -270,11 +278,11 @@ public class SkillListener implements Listener {
         if (!canUseSkill(player, TeamType.APOSTLE_OF_LIGHT) || !checkCooldown(player, "mirror-dash")) return;
 
         Vector playerDirection = player.getEyeLocation().getDirection();
-        playerDirection.setY(0).normalize(); // Ignore Y-axis for cone check
+        playerDirection.setY(0).normalize();
 
         Player bestTarget = null;
-        double closestDot = -1.0; // Dot product ranges from -1 to 1. Closer to 1 is better.
-        double coneThreshold = Math.cos(Math.toRadians(22.5)); // Pre-calculate cosine of half-angle
+        double closestDot = -1.0;
+        double coneThreshold = Math.cos(Math.toRadians(22.5));
 
         for (Player targetPlayer : Bukkit.getOnlinePlayers()) {
             if (targetPlayer.equals(player) || targetPlayer.getWorld() != player.getWorld() || gameManager.getPlayerTeam(targetPlayer) == TeamType.APOSTLE_OF_LIGHT) {
@@ -320,7 +328,7 @@ public class SkillListener implements Listener {
             if (gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_MOON) {
                 targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 60, 2));
                 skillDisabledPlayers.add(targetPlayer.getUniqueId());
-                Bukkit.getScheduler().runTaskLater(plugin, () -> skillDisabledPlayers.remove(targetPlayer.getUniqueId()), 120L); // 6 seconds
+                Bukkit.getScheduler().runTaskLater(plugin, () -> skillDisabledPlayers.remove(targetPlayer.getUniqueId()), 120L);
             }
         }
         player.getWorld().playSound(player.getLocation(), Sound.BLOCK_CHAIN_BREAK, 1f, 0.7f);
@@ -337,11 +345,11 @@ public class SkillListener implements Listener {
         shadowWingsGlided.put(uuid, false);
 
         ItemStack elytra = new ItemStack(Material.ELYTRA);
-        elytra.addUnsafeEnchantment(Enchantment.VANISHING_CURSE, 1);
+        elytra.addUnsafeEnchantment(Enchantment.BINDING_CURSE, 1);
         ItemMeta meta = elytra.getItemMeta();
         meta.setUnbreakable(true);
         if (meta instanceof Damageable) {
-            ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 6);
+            ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 5);
         }
         elytra.setItemMeta(meta);
 
@@ -403,7 +411,7 @@ public class SkillListener implements Listener {
                     if (targetPlayer.getLocation().distanceSquared(player.getLocation()) > 5*5) continue;
 
                     if (gameManager.getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_MOON) {
-                        targetPlayer.damage(event.getDamage() * 0.5, player);
+                        dealTrueDamage(targetPlayer, event.getDamage() * 0.5);
                         Vector knockback = targetPlayer.getLocation().toVector().subtract(loc.toVector()).normalize().multiply(1.5);
                         targetPlayer.setVelocity(knockback);
                     }

@@ -28,6 +28,8 @@ public class GameManager {
     public BukkitTask gracePeriodTask;
     public BukkitTask survivorLocatorTask;
     public long gracePeriodEndTime;
+    private Location lightTeamBaseLocation;
+    private Location moonTeamBaseLocation;
 
     private GameManager() {
         this.state = GameState.WAITING;
@@ -156,8 +158,8 @@ public class GameManager {
         double cornerX = size / 2.0;
         double cornerZ = size / 2.0;
 
-        Location lightTeamBase = center.clone().add(cornerX * 0.75, 0, cornerZ * 0.75);
-        Location moonTeamBase = center.clone().add(-cornerX * 0.75, 0, -cornerZ * 0.75);
+        this.lightTeamBaseLocation = center.clone().add(cornerX * 0.75, 0, cornerZ * 0.75);
+        this.moonTeamBaseLocation = center.clone().add(-cornerX * 0.75, 0, -cornerZ * 0.75);
 
         Random random = new Random();
 
@@ -166,7 +168,7 @@ public class GameManager {
             if (player == null) continue;
 
             TeamType team = getPlayerTeam(player);
-            Location base = (team == TeamType.APOSTLE_OF_LIGHT) ? lightTeamBase : moonTeamBase;
+            Location base = (team == TeamType.APOSTLE_OF_LIGHT) ? this.lightTeamBaseLocation : this.moonTeamBaseLocation;
 
             int offsetX = random.nextInt(31) - 15;
             int offsetZ = random.nextInt(31) - 15;
@@ -356,16 +358,27 @@ public class GameManager {
         TeamType team = getPlayerTeam(player);
         if (team == null) {
             player.displayName(Component.text(player.getName()));
+            player.playerListName(Component.text(player.getName()));
+            player.customName(null);
+            player.setCustomNameVisible(false);
             return;
         }
         String teamColor = team == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua";
         Component prefix = MiniMessage.miniMessage().deserialize("<" + teamColor + ">[" + team.getDisplayName() + "] ");
-        player.displayName(prefix.append(Component.text(player.getName())));
+        Component newName = prefix.append(Component.text(player.getName()));
+
+        player.displayName(newName);
+        player.playerListName(newName);
+        player.customName(newName);
+        player.setCustomNameVisible(true);
     }
 
     private void resetPlayerDisplayNames() {
         for (Player player : Bukkit.getOnlinePlayers()) {
             player.displayName(Component.text(player.getName()));
+            player.playerListName(Component.text(player.getName()));
+            player.customName(null);
+            player.setCustomNameVisible(false);
         }
     }
 
@@ -379,14 +392,11 @@ public class GameManager {
             player.setGameMode(GameMode.SPECTATOR);
             player.sendMessage(MiniMessage.miniMessage().deserialize("<gray>관전자로 다시 참여했습니다.</gray>"));
         } else {
-            player.getInventory().clear();
-            supplySkillItems(player);
+            // Don't clear inventory or re-supply items for reconnecting players
             if (player.getBedSpawnLocation() != null) {
                 player.teleport(player.getBedSpawnLocation());
-            } else {
-                // Fallback teleport to a random living teammate
-                teleportToRandomTeammate(player);
             }
+            // If bed spawn is null, player will spawn at their last location.
             player.sendMessage(MiniMessage.miniMessage().deserialize("<green>게임에 다시 참여했습니다!</green>"));
         }
     }
@@ -403,28 +413,28 @@ public class GameManager {
         updatePlayerDisplayName(player);
         supplySkillItems(player);
 
-        teleportToRandomTeammate(player);
+        // Teleport to the original team spawn area
+        Location base = (assignedTeam == TeamType.APOSTLE_OF_LIGHT) ? this.lightTeamBaseLocation : this.moonTeamBaseLocation;
+        Random random = new Random();
+        int offsetX = random.nextInt(31) - 15;
+        int offsetZ = random.nextInt(31) - 15;
+        double finalX = base.getX() + offsetX;
+        double finalZ = base.getZ() + offsetZ;
+        Block safeBlock = getSafeHighestBlock(base.getWorld(), (int) finalX, (int) finalZ);
+        if (safeBlock != null) {
+            Location tpLocation = safeBlock.getLocation().add(0.5, 1.5, 0.5);
+            player.teleportAsync(tpLocation);
+        } else {
+            player.teleportAsync(base.getWorld().getSpawnLocation());
+        }
+
 
         String teamColor = assignedTeam == TeamType.APOSTLE_OF_LIGHT ? "yellow" : "aqua";
         player.sendMessage(MiniMessage.miniMessage().deserialize("<green>진행중인 게임에 참여합니다!</green>"));
         player.sendMessage(MiniMessage.miniMessage().deserialize("<gray>당신은 <" + teamColor + ">[" + assignedTeam.getDisplayName() + "]</" + teamColor + "> 팀입니다.</gray>"));
     }
 
-    private void teleportToRandomTeammate(Player playerToTeleport) {
-        TeamType team = getPlayerTeam(playerToTeleport);
-        Optional<Player> teammate = playerTeams.entrySet().stream()
-            .filter(entry -> entry.getValue() == team && !entry.getKey().equals(playerToTeleport.getUniqueId()))
-            .map(entry -> Bukkit.getPlayer(entry.getKey()))
-            .filter(p -> p != null && p.isOnline() && alivePlayers.contains(p.getUniqueId()))
-            .findAny();
 
-        if (teammate.isPresent()) {
-            playerToTeleport.teleport(teammate.get().getLocation());
-        } else {
-            // If no teammate found, teleport to world spawn as a fallback
-            playerToTeleport.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
-        }
-    }
 
     public ItemStack createSkillItem(String skillId) {
         Material material;
