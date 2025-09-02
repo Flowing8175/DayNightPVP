@@ -36,8 +36,8 @@ public class ShadowWingsSkill extends Skill {
     private final Map<UUID, ItemStack> originalChestplates = new HashMap<>();
     private final Map<UUID, Boolean> fireworkUsed = new HashMap<>();
     private final Map<UUID, Boolean> elytraBroken = new HashMap<>();
+    private final Map<UUID, Boolean> moonSmashUsed = new HashMap<>();
     private final Map<UUID, BukkitTask> timeoutTasks = new HashMap<>();
-    private final Map<UUID, Long> moonSmashCooldowns = new HashMap<>();
     private final Set<UUID> fallImmunityPlayers = new HashSet<>();
 
     private final NamespacedKey fireworkKey;
@@ -64,6 +64,7 @@ public class ShadowWingsSkill extends Skill {
         originalChestplates.put(uuid, player.getInventory().getChestplate());
         fireworkUsed.put(uuid, false);
         elytraBroken.put(uuid, false);
+        moonSmashUsed.put(uuid, false);
 
         ItemStack elytra = new ItemStack(Material.ELYTRA);
         ItemMeta meta = elytra.getItemMeta();
@@ -103,6 +104,7 @@ public class ShadowWingsSkill extends Skill {
 
         fireworkUsed.remove(uuid);
         elytraBroken.remove(uuid);
+        moonSmashUsed.remove(uuid);
 
         fallImmunityPlayers.add(uuid);
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> fallImmunityPlayers.remove(uuid), 60L); // 3 seconds
@@ -151,14 +153,9 @@ public class ShadowWingsSkill extends Skill {
         UUID uuid = player.getUniqueId();
 
         boolean isEligible = originalChestplates.containsKey(uuid) || fallImmunityPlayers.contains(uuid);
+        boolean hasUsedSmash = moonSmashUsed.getOrDefault(uuid, true);
 
-        if (!event.isSneaking() || player.isOnGround() || !isEligible) {
-            return;
-        }
-
-        long now = System.currentTimeMillis();
-        long cooldown = plugin.getConfig().getLong("cooldowns.moon-smash", 30) * 1000L;
-        if (moonSmashCooldowns.getOrDefault(uuid, 0L) > now) {
+        if (!event.isSneaking() || player.isOnGround() || !isEligible || hasUsedSmash) {
             return;
         }
 
@@ -167,7 +164,7 @@ public class ShadowWingsSkill extends Skill {
             player.setGliding(false);
         }
         player.setVelocity(new Vector(0, -2.5, 0));
-        moonSmashCooldowns.put(uuid, now + cooldown);
+        moonSmashUsed.put(uuid, true);
     }
 
     @EventHandler
@@ -211,7 +208,7 @@ public class ShadowWingsSkill extends Skill {
         elytraBroken.clear();
         timeoutTasks.values().forEach(BukkitTask::cancel);
         timeoutTasks.clear();
-        moonSmashCooldowns.clear();
+        moonSmashUsed.clear();
         fallImmunityPlayers.clear();
     }
 }
