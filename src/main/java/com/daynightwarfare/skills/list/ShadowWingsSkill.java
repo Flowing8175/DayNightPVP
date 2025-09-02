@@ -94,12 +94,16 @@ public class ShadowWingsSkill extends Skill {
         if (timeoutTask != null) timeoutTask.cancel();
 
         player.getInventory().setChestplate(originalChestplates.remove(uuid));
-        player.getInventory().remove(Material.FIREWORK_ROCKET); // Also removes the firework
+
+        ItemStack firework = new ItemStack(Material.FIREWORK_ROCKET);
+        ItemMeta fireworkMeta = firework.getItemMeta();
+        fireworkMeta.getPersistentDataContainer().set(fireworkKey, PersistentDataType.BYTE, (byte) 1);
+        firework.setItemMeta(fireworkMeta);
+        player.getInventory().remove(firework);
 
         fireworkUsed.remove(uuid);
         elytraBroken.remove(uuid);
 
-        // Grant lingering fall damage immunity
         fallImmunityPlayers.add(uuid);
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> fallImmunityPlayers.remove(uuid), 60L); // 3 seconds
     }
@@ -144,20 +148,26 @@ public class ShadowWingsSkill extends Skill {
     @EventHandler
     public void onPlayerToggleSneak(PlayerToggleSneakEvent event) {
         Player player = event.getPlayer();
-        if (!event.isSneaking() || !player.isGliding() || !originalChestplates.containsKey(player.getUniqueId())) {
+        UUID uuid = player.getUniqueId();
+
+        boolean isEligible = originalChestplates.containsKey(uuid) || fallImmunityPlayers.contains(uuid);
+
+        if (!event.isSneaking() || player.isOnGround() || !isEligible) {
             return;
         }
 
         long now = System.currentTimeMillis();
         long cooldown = plugin.getConfig().getLong("cooldowns.moon-smash", 30) * 1000L;
-        if (moonSmashCooldowns.getOrDefault(player.getUniqueId(), 0L) > now) {
-            return; // Cooldown active
+        if (moonSmashCooldowns.getOrDefault(uuid, 0L) > now) {
+            return;
         }
 
         player.getPersistentDataContainer().set(moonSmashKey, PersistentDataType.BYTE, (byte) 1);
-        player.setGliding(false);
+        if (player.isGliding()) {
+            player.setGliding(false);
+        }
         player.setVelocity(new Vector(0, -2.5, 0));
-        moonSmashCooldowns.put(player.getUniqueId(), now + cooldown);
+        moonSmashCooldowns.put(uuid, now + cooldown);
     }
 
     @EventHandler
@@ -173,9 +183,11 @@ public class ShadowWingsSkill extends Skill {
                 player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.5f, 0.5f);
                 player.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, player.getLocation(), 5);
 
+                double damage = (player.getFallDistance() * 0.4) + 3.0;
+
                 for (Entity entity : player.getNearbyEntities(5, 5, 5)) {
                     if (entity instanceof Player && gameManager.getTeamManager().getPlayerTeam((Player) entity) != TeamType.APOSTLE_OF_MOON) {
-                        ((LivingEntity) entity).damage(event.getDamage() * 0.5, player);
+                        ((LivingEntity) entity).damage(damage, player);
                         Vector knockback = entity.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5);
                         entity.setVelocity(knockback);
                     }
