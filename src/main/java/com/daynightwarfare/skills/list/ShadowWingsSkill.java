@@ -2,7 +2,6 @@ package com.daynightwarfare.skills.list;
 
 import com.daynightwarfare.TeamType;
 import com.daynightwarfare.skills.Skill;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
@@ -59,7 +58,7 @@ public class ShadowWingsSkill extends Skill {
     @Override
     public boolean execute(Player player) {
         UUID uuid = player.getUniqueId();
-        removeElytra(player); // Clear any previous state
+        removeElytra(player, false); // Clear previous state without granting immunity
 
         originalChestplates.put(uuid, player.getInventory().getChestplate());
         fireworkUsed.put(uuid, false);
@@ -70,7 +69,7 @@ public class ShadowWingsSkill extends Skill {
         ItemMeta meta = elytra.getItemMeta();
         meta.addEnchant(Enchantment.BINDING_CURSE, 1, true);
         if (meta instanceof Damageable) {
-            ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 3);
+            ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 2);
         }
         elytra.setItemMeta(meta);
         player.getInventory().setChestplate(elytra);
@@ -81,13 +80,13 @@ public class ShadowWingsSkill extends Skill {
         firework.setItemMeta(fireworkMeta);
         player.getInventory().addItem(firework);
 
-        BukkitTask timeoutTask = plugin.getServer().getScheduler().runTaskLater(plugin, () -> removeElytra(player), 200L);
+        BukkitTask timeoutTask = plugin.getServer().getScheduler().runTaskLater(plugin, () -> removeElytra(player, true), 200L);
         timeoutTasks.put(uuid, timeoutTask);
 
         return true;
     }
 
-    private void removeElytra(Player player) {
+    private void removeElytra(Player player, boolean grantLingeringImmunity) {
         UUID uuid = player.getUniqueId();
         if (!originalChestplates.containsKey(uuid)) return;
 
@@ -96,18 +95,23 @@ public class ShadowWingsSkill extends Skill {
 
         player.getInventory().setChestplate(originalChestplates.remove(uuid));
 
-        ItemStack firework = new ItemStack(Material.FIREWORK_ROCKET);
-        ItemMeta fireworkMeta = firework.getItemMeta();
-        fireworkMeta.getPersistentDataContainer().set(fireworkKey, PersistentDataType.BYTE, (byte) 1);
-        firework.setItemMeta(fireworkMeta);
-        player.getInventory().remove(firework);
+        for (ItemStack item : player.getInventory().getContents()) {
+            if (item != null && item.hasItemMeta()) {
+                if (item.getItemMeta().getPersistentDataContainer().has(fireworkKey, PersistentDataType.BYTE)) {
+                    player.getInventory().remove(item);
+                    break;
+                }
+            }
+        }
 
         fireworkUsed.remove(uuid);
         elytraBroken.remove(uuid);
         moonSmashUsed.remove(uuid);
 
-        fallImmunityPlayers.add(uuid);
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> fallImmunityPlayers.remove(uuid), 60L); // 3 seconds
+        if (grantLingeringImmunity) {
+            fallImmunityPlayers.add(uuid);
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> fallImmunityPlayers.remove(uuid), 60L); // 3 seconds
+        }
     }
 
     @EventHandler
@@ -135,7 +139,7 @@ public class ShadowWingsSkill extends Skill {
         boolean isBroken = elytraBroken.getOrDefault(uuid, false);
 
         if (player.isOnGround() && (usedFirework || isBroken)) {
-            removeElytra(player);
+            removeElytra(player, true);
         }
     }
 
@@ -163,7 +167,7 @@ public class ShadowWingsSkill extends Skill {
         if (player.isGliding()) {
             player.setGliding(false);
         }
-        player.setVelocity(new Vector(0, -2.5, 0));
+        player.setVelocity(new Vector(0, -20, 0));
         moonSmashUsed.put(uuid, true);
     }
 
@@ -177,18 +181,39 @@ public class ShadowWingsSkill extends Skill {
                 event.setCancelled(true);
                 player.getPersistentDataContainer().remove(moonSmashKey);
 
-                player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.5f, 0.5f);
-                player.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, player.getLocation(), 5);
-
-                double damage = (player.getFallDistance() * 0.4) + 3.0;
-
+                boolean hasValidTarget = false;
                 for (Entity entity : player.getNearbyEntities(5, 5, 5)) {
-                    if (entity instanceof Player && gameManager.getTeamManager().getPlayerTeam((Player) entity) != TeamType.APOSTLE_OF_MOON) {
-                        ((LivingEntity) entity).damage(damage, player);
-                        Vector knockback = entity.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5);
-                        entity.setVelocity(knockback);
+                    if (entity instanceof LivingEntity && !entity.equals(player)) {
+                        if (entity instanceof Player && gameManager.getTeamManager().getPlayerTeam((Player) entity) == TeamType.APOSTLE_OF_MOON) {
+                            continue;
+                        }
+                        hasValidTarget = true;
+                        break;
                     }
                 }
+
+                if (hasValidTarget) {
+                    player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.5f, 0.5f);
+                    player.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, player.getLocation(), 5);
+                }
+
+                int damage = (int) ((player.getFallDistance() * 0.3) + 4);
+
+                for (Entity entity : player.getNearbyEntities(5, 5, 5)) {
+                     if (entity instanceof LivingEntity && !entity.equals(player)) {
+                        LivingEntity target = (LivingEntity) entity;
+                        if (target instanceof Player) {
+                            if (gameManager.getTeamManager().getPlayerTeam((Player) target) == TeamType.APOSTLE_OF_MOON) {
+                                continue;
+                            }
+                        }
+                        target.damage(damage, player);
+                        Vector knockback = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5);
+                        target.setVelocity(knockback);
+                    }
+                }
+                // Smash is a final landing, so no lingering immunity
+                removeElytra(player, false);
             } else if (originalChestplates.containsKey(uuid) || fallImmunityPlayers.contains(uuid)) {
                 event.setCancelled(true);
             }
@@ -200,7 +225,7 @@ public class ShadowWingsSkill extends Skill {
         for (UUID uuid : new HashSet<>(originalChestplates.keySet())) {
             Player player = plugin.getServer().getPlayer(uuid);
             if (player != null) {
-                removeElytra(player);
+                removeElytra(player, false);
             }
         }
         originalChestplates.clear();

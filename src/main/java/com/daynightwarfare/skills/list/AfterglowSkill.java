@@ -66,13 +66,15 @@ public class AfterglowSkill extends Skill {
                 player.getWorld().spawnParticle(Particle.FLAME, player.getLocation().add(0, 1, 0), 20, 0.5, 0.5, 0.5, 0.01);
 
                 for (Entity entity : player.getNearbyEntities(6, 6, 6)) {
-                    if (entity instanceof Player) {
-                        Player targetPlayer = (Player) entity;
-                        if (gameManager.getTeamManager().getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_LIGHT) {
-                            if (targetPlayer instanceof LivingEntity) {
-                                ((LivingEntity) targetPlayer).damage(1.0, player);
+                    if (entity instanceof LivingEntity && !entity.equals(player)) {
+                        LivingEntity target = (LivingEntity) entity;
+                        if (target instanceof Player) {
+                            Player targetPlayer = (Player) target;
+                            if (gameManager.getTeamManager().getPlayerTeam(targetPlayer) == TeamType.APOSTLE_OF_LIGHT) {
+                                continue;
                             }
                         }
+                        target.damage(1.0, player);
                     }
                 }
                 executions++;
