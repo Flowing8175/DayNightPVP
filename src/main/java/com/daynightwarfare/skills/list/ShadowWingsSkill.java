@@ -181,21 +181,8 @@ public class ShadowWingsSkill extends Skill {
                 event.setCancelled(true);
                 player.getPersistentDataContainer().remove(moonSmashKey);
 
-                boolean hasValidTarget = false;
-                for (Entity entity : player.getNearbyEntities(5, 5, 5)) {
-                    if (entity instanceof LivingEntity && !entity.equals(player)) {
-                        if (entity instanceof Player && gameManager.getTeamManager().getPlayerTeam((Player) entity) == TeamType.APOSTLE_OF_MOON) {
-                            continue;
-                        }
-                        hasValidTarget = true;
-                        break;
-                    }
-                }
-
-                if (hasValidTarget) {
-                    player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.5f, 0.5f);
-                    player.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, player.getLocation(), 5);
-                }
+                player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.5f, 0.5f);
+                player.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, player.getLocation(), 5);
 
                 int damage = (int) ((player.getFallDistance() * 0.3) + 4);
 
