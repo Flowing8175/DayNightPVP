@@ -69,7 +69,13 @@ public class ShadowWingsSkill extends Skill {
         ItemMeta meta = elytra.getItemMeta();
         meta.addEnchant(Enchantment.BINDING_CURSE, 1, true);
         if (meta instanceof Damageable) {
-            ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 2);
+            byte lightLevel = player.getLocation().getBlock().getLightLevel();
+            if (lightLevel >= 7) {
+                ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 2);
+                player.sendMessage("§c어둠의 힘이 부족하여 날개가 불완전합니다.");
+            } else {
+                ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 4);
+            }
         }
         elytra.setItemMeta(meta);
         player.getInventory().setChestplate(elytra);
