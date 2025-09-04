@@ -204,15 +204,7 @@ public class ShadowWingsSkill extends Skill {
                             }
                         }
 
-                        // Let's establish the variables first for clarity
-                        float fallDistance = player.getFallDistance();
-                        double distance = player.getLocation().distance(target.getLocation());
-
-                        // The damage calculation
-                        int damage = (int) Math.round(
-                            Math.min(10, (fallDistance * 0.4 + 5) / (1 + distance * distance * 0.15))
-                        );
-
+                        double damage = player.getFallDistance() * 0.4 - player.getLocation().distance(target.getLocation()) * 1.5;
                         if (damage > 0) {
                             target.damage(damage, player);
                         }

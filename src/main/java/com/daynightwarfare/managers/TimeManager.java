@@ -29,13 +29,25 @@ public class TimeManager {
             @Override
             public void run() {
                 long currentTime = world.getTime();
-                long timeToAdd = (long) timeMultiplier;
+                double timeToAdd = timeMultiplier;
 
-                if ((currentTime >= 12200 && currentTime < 13800) || (currentTime >= 22000)) {
-                    timeToAdd *= 10;
+                // Sunset transition (11000 to 13000)
+                if (currentTime >= 11000 && currentTime < 13000) {
+                    double progress = (currentTime - 11000) / 2000.0;
+                    double parabola = -4 * progress * (progress - 1);
+                    double speedMultiplier = 1 + 19 * parabola;
+                    timeToAdd = timeMultiplier * speedMultiplier;
                 }
 
-                world.setTime(currentTime + timeToAdd);
+                // Sunrise transition (22000 to 24000)
+                if (currentTime >= 22000 && currentTime < 24000) {
+                    double progress = (currentTime - 22000) / 2000.0;
+                    double parabola = -4 * progress * (progress - 1);
+                    double speedMultiplier = 1 + 19 * parabola;
+                    timeToAdd = timeMultiplier * speedMultiplier;
+                }
+
+                world.setTime(currentTime + (long)timeToAdd);
                 handleAnnouncements(world.getTime());
             }
         }.runTaskTimer(plugin, 0L, 1L);
@@ -51,10 +63,10 @@ public class TimeManager {
         }
 
         // Announce sunrise
-        if (currentTime >= 23900 && !announcedSunrise) {
+        if (currentTime >= 22900 && currentTime < 23000 && !announcedSunrise) {
             Bukkit.broadcast(MiniMessage.miniMessage().deserialize("<aqua>달이 기울고 새벽이 다가옵니다...</aqua>"));
             announcedSunrise = true;
-        } else if (currentTime < 23900 && currentTime > 1000) { // Reset after sunrise is over
+        } else if (currentTime >= 23000 || currentTime < 1000) { // Reset after sunrise is over
             announcedSunrise = false;
         }
     }
