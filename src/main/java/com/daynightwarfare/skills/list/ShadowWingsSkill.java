@@ -188,7 +188,7 @@ public class ShadowWingsSkill extends Skill {
                 player.getPersistentDataContainer().remove(moonSmashKey);
 
                 player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.5f, 0.5f);
-                player.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, player.getLocation(), 3000, 2, 0.5, 2, 1, org.bukkit.Bukkit.createBlockData(Material.GRASS_BLOCK));
+                player.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, player.getLocation(), 800, 2, 0.5, 2, 1, org.bukkit.Bukkit.createBlockData(Material.GRASS_BLOCK));
 
                 for (Entity entity : player.getNearbyEntities(8, 8, 8)) {
                     if (entity instanceof LivingEntity && !entity.equals(player)) {
@@ -204,7 +204,15 @@ public class ShadowWingsSkill extends Skill {
                             }
                         }
 
-                        double damage = player.getFallDistance() * 0.4 - player.getLocation().distance(target.getLocation()) * 1.5;
+                        // Let's establish the variables first for clarity
+                        float fallDistance = player.getFallDistance();
+                        double distance = player.getLocation().distance(target.getLocation());
+
+                        // The damage calculation
+                        int damage = (int) Math.round(
+                            Math.min(10, (fallDistance * 0.4 + 5) / (1 + distance * distance * 0.15))
+                        );
+
                         if (damage > 0) {
                             target.damage(damage, player);
                         }
