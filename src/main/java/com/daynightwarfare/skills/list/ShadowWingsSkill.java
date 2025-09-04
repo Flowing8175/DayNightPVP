@@ -188,19 +188,27 @@ public class ShadowWingsSkill extends Skill {
                 player.getPersistentDataContainer().remove(moonSmashKey);
 
                 player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.5f, 0.5f);
-                player.getWorld().spawnParticle(Particle.EXPLOSION_LARGE, player.getLocation(), 5);
+                player.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, player.getLocation(), 800, 2, 0.5, 2, 1, org.bukkit.Bukkit.createBlockData(Material.GRASS_BLOCK));
 
-                int damage = (int) ((player.getFallDistance() * 0.3) + 4);
-
-                for (Entity entity : player.getNearbyEntities(5, 5, 5)) {
-                     if (entity instanceof LivingEntity && !entity.equals(player)) {
+                for (Entity entity : player.getNearbyEntities(8, 8, 8)) {
+                    if (entity instanceof LivingEntity && !entity.equals(player)) {
                         LivingEntity target = (LivingEntity) entity;
+
+                        if (player.getLocation().distance(target.getLocation()) > 8) {
+                            continue;
+                        }
+
                         if (target instanceof Player) {
                             if (gameManager.getTeamManager().getPlayerTeam((Player) target) == TeamType.APOSTLE_OF_MOON) {
                                 continue;
                             }
                         }
-                        target.damage(damage, player);
+
+                        double damage = player.getFallDistance() * 0.4 - player.getLocation().distance(target.getLocation()) * 1.5;
+                        if (damage > 0) {
+                            target.damage(damage, player);
+                        }
+
                         Vector knockback = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5);
                         target.setVelocity(knockback);
                     }

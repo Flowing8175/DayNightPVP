@@ -71,9 +71,9 @@ public final class DayNightPlugin extends JavaPlugin {
             // Strength buff logic
             boolean shouldHaveStrength = (team == TeamType.APOSTLE_OF_LIGHT && isDay) || (team == TeamType.APOSTLE_OF_MOON && !isDay);
             if (shouldHaveStrength) {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.INCREASE_DAMAGE, 7 * 20, 0, true, false, true));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 7 * 20, 0, true, false, true));
             } else {
-                player.removePotionEffect(PotionEffectType.INCREASE_DAMAGE);
+                player.removePotionEffect(PotionEffectType.STRENGTH);
             }
 
             // Night vision logic

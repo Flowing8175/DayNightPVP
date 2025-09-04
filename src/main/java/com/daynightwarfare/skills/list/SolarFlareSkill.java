@@ -33,7 +33,7 @@ public class SolarFlareSkill extends Skill {
             TeamType targetTeam = gameManager.getTeamManager().getPlayerTeam(targetPlayer);
             if (targetTeam != null && targetTeam != getTeamType()) { // Enemy
                 targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20, 0));
-                targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 70, 1));
+                targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 70, 1));
             } else if (targetTeam == getTeamType()) { // Ally
                 targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 80, 0));
             }
