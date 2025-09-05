@@ -60,7 +60,7 @@ public abstract class Skill implements Listener {
 
     public boolean canUse(Player player) {
         if (!gameManager.isGameInProgress() || gameManager.isGracePeriodActive()) {
-            player.sendMessage(miniMessage.deserialize("<red>지금은 스킬을 사용할 수 없습니다.</red>"));
+            player.sendMessage(miniMessage.deserialize("<red>무적 시간 중에는 스킬을 사용할 수 없습니다.</red>"));
             return false;
         }
         if (gameManager.getTeamManager().getPlayerTeam(player) != teamType) {

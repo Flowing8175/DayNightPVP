@@ -28,7 +28,7 @@ public class SolarFlareSkill extends Skill {
     public boolean execute(Player player) {
         long time = player.getWorld().getTime();
         if (time > 12300 && time < 23850) {
-            player.sendMessage("지금은 사용할 수 없습니다.");
+            player.sendMessage(miniMessage.deserialize("<red>태양 섬광은 낮에만 사용할 수 있습니다.</red>"));
             return false;
         }
 
