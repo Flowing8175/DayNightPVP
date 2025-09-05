@@ -26,6 +26,12 @@ public class SolarFlareSkill extends Skill {
 
     @Override
     public boolean execute(Player player) {
+        long time = player.getWorld().getTime();
+        if (time > 12300 && time < 23850) {
+            player.sendMessage("지금은 사용할 수 없습니다.");
+            return false;
+        }
+
         for (Player targetPlayer : Bukkit.getOnlinePlayers()) {
             if (targetPlayer.equals(player)) continue;
             if (targetPlayer.getWorld() != player.getWorld() || targetPlayer.getLocation().distanceSquared(player.getLocation()) > 15 * 15) continue;

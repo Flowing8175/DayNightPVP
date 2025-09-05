@@ -173,7 +173,7 @@ public class ShadowWingsSkill extends Skill {
         if (player.isGliding()) {
             player.setGliding(false);
         }
-        player.setVelocity(new Vector(0, -20, 0));
+        player.setVelocity(new Vector(0, -15, 0));
         moonSmashUsed.put(uuid, true);
     }
 
@@ -190,7 +190,7 @@ public class ShadowWingsSkill extends Skill {
                 player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.5f, 0.5f);
                 player.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, player.getLocation(), 800, 2, 0.5, 2, 1, org.bukkit.Bukkit.createBlockData(Material.GRASS_BLOCK));
 
-                for (Entity entity : player.getNearbyEntities(8, 8, 8)) {
+                for (Entity entity : player.getNearbyEntities(5, 3, 5)) {
                     if (entity instanceof LivingEntity && !entity.equals(player)) {
                         LivingEntity target = (LivingEntity) entity;
 
@@ -204,7 +204,7 @@ public class ShadowWingsSkill extends Skill {
                             }
                         }
 
-                        double damage = player.getFallDistance() * 0.4 - player.getLocation().distance(target.getLocation()) * 1.5;
+                        double damage = player.getFallDistance() * 0.2 - player.getLocation().distance(target.getLocation());
                         if (damage > 0) {
                             target.damage(Math.min(damage, 8.0), player);
                         }

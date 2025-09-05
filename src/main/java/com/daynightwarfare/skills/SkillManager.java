@@ -2,7 +2,7 @@ package com.daynightwarfare.skills;
 
 import com.daynightwarfare.DayNightPlugin;
 import com.daynightwarfare.skills.list.AfterglowSkill;
-import com.daynightwarfare.skills.list.MirrorDashSkill;
+import com.daynightwarfare.skills.list.ShadowDashSkill;
 import com.daynightwarfare.skills.list.MoonsChainSkill;
 import com.daynightwarfare.skills.list.ShadowWingsSkill;
 import com.daynightwarfare.skills.list.SolarFlareSkill;
@@ -40,7 +40,7 @@ public class SkillManager implements Listener {
         addSkill(new SolarFlareSkill());
         addSkill(new SunsSpearSkill());
         addSkill(new AfterglowSkill());
-        addSkill(new MirrorDashSkill());
+        addSkill(new ShadowDashSkill());
         addSkill(new MoonsChainSkill());
         addSkill(new ShadowWingsSkill());
     }
