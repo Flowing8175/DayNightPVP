@@ -154,6 +154,15 @@ public class ShadowWingsSkill extends Skill {
         Player player = event.getPlayer();
         if (originalChestplates.containsKey(player.getUniqueId()) && event.getBrokenItem().getType() == Material.ELYTRA) {
             elytraBroken.put(player.getUniqueId(), true);
+
+            for (ItemStack item : player.getInventory().getContents()) {
+                if (item != null && item.hasItemMeta()) {
+                    if (item.getItemMeta().getPersistentDataContainer().has(fireworkKey, PersistentDataType.BYTE)) {
+                        player.getInventory().remove(item);
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -164,8 +173,9 @@ public class ShadowWingsSkill extends Skill {
 
         boolean isEligible = originalChestplates.containsKey(uuid) || fallImmunityPlayers.contains(uuid);
         boolean hasUsedSmash = moonSmashUsed.getOrDefault(uuid, true);
+        boolean isBroken = elytraBroken.getOrDefault(uuid, false);
 
-        if (!event.isSneaking() || player.isOnGround() || !isEligible || hasUsedSmash) {
+        if (!event.isSneaking() || player.isOnGround() || !isEligible || hasUsedSmash || isBroken) {
             return;
         }
 
