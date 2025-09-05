@@ -5,7 +5,9 @@ import com.daynightwarfare.GameManager;
 import com.daynightwarfare.managers.PlayerManager;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.Bukkit;
+import com.daynightwarfare.TeamType;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -58,6 +60,14 @@ public class ReviveCommand implements SubCommand {
         target.setHealth(target.getMaxHealth());
         target.setFoodLevel(20);
         target.setFireTicks(0);
+
+        TeamType team = gameManager.getTeamManager().getPlayerTeam(target);
+        if (team != null) {
+            Location base = (team == TeamType.APOSTLE_OF_LIGHT) ? gameManager.getLightTeamBaseLocation() : gameManager.getMoonTeamBaseLocation();
+            if (base != null) {
+                target.teleport(base);
+            }
+        }
 
         sender.sendMessage(miniMessage.deserialize("<green>" + target.getName() + "님을 부활시켰습니다.</green>"));
         target.sendMessage(miniMessage.deserialize("<green>관리자에 의해 부활되었습니다.</green>"));

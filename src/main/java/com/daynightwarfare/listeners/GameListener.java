@@ -4,6 +4,7 @@ import com.daynightwarfare.DayNightPlugin;
 import com.daynightwarfare.GameManager;
 import org.bukkit.entity.Player;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -64,10 +65,17 @@ public class GameListener implements Listener {
                 event.setCancelled(true);
                 player.setHealth(player.getMaxHealth());
                 player.sendMessage("부활했습니다!");
+
+                com.daynightwarfare.TeamType team = gameManager.getTeamManager().getPlayerTeam(player);
+                if (team != null) {
+                    Location base = (team == com.daynightwarfare.TeamType.APOSTLE_OF_LIGHT) ? gameManager.getLightTeamBaseLocation() : gameManager.getMoonTeamBaseLocation();
+                    if (base != null) {
+                        player.teleport(base);
+                    }
+                }
                 return;
             }
 
-            event.getDrops().clear();
             event.setDroppedExp(0);
 
             gameManager.getPlayerManager().removePlayer(player);

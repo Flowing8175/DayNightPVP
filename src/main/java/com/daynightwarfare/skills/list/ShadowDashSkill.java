@@ -58,25 +58,10 @@ public class ShadowDashSkill extends Skill {
         }
 
         if (bestTarget != null) {
-            Vector targetLookDir = bestTarget.getLocation().getDirection().normalize();
-            Location teleportLocation = null;
+            final Player finalBestTarget = bestTarget;
 
-            for (double d = 3.0; d >= 1.0; d -= 0.5) {
-                Location behind = bestTarget.getLocation().subtract(targetLookDir.clone().multiply(d));
-                if (behind.getBlock().isPassable() && behind.clone().add(0, 1, 0).getBlock().isPassable()) {
-                    teleportLocation = behind;
-                    break;
-                }
-            }
-
-            if (teleportLocation != null) {
-                teleportLocation.setDirection(bestTarget.getLocation().toVector().subtract(teleportLocation.toVector()));
-
-                final Player finalBestTarget = bestTarget;
-                final Location finalBehind = teleportLocation;
-
-                new BukkitRunnable() {
-                    int count = 0;
+            new BukkitRunnable() {
+                int count = 0;
                     final Title.Times times = Title.Times.times(Duration.ZERO, Duration.ofMillis(500), Duration.ZERO);
                     final Component subtitle1 = miniMessage.deserialize("<yellow>[ ♥ ]</yellow>");
                     final Component subtitle2 = miniMessage.deserialize("<yellow>[</yellow><red> ♥ </red><yellow>]</yellow>");
@@ -85,9 +70,27 @@ public class ShadowDashSkill extends Skill {
                     public void run() {
                         if (count >= 4) {
                             this.cancel();
-                            player.teleport(finalBehind);
+
+                            Vector targetLookDir = finalBestTarget.getLocation().getDirection().normalize();
+                            Location teleportLocation = null;
+                            for (double d = 3.0; d >= 1.0; d -= 0.5) {
+                                Location behind = finalBestTarget.getLocation().subtract(targetLookDir.clone().multiply(d));
+                                if (behind.getBlock().isPassable() && behind.clone().add(0, 1, 0).getBlock().isPassable()) {
+                                    teleportLocation = behind;
+                                    break;
+                                }
+                            }
+
+                            if (teleportLocation == null) {
+                                player.sendMessage(miniMessage.deserialize("<red>대상을 추적할 수 없습니다.</red>"));
+                                return;
+                            }
+                            teleportLocation.setDirection(finalBestTarget.getLocation().toVector().subtract(teleportLocation.toVector()));
+
+                            player.teleport(teleportLocation);
                             player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 8 * 20, 1));
                             player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 8 * 20, 0));
+                            finalBestTarget.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 3));
 
                             new BukkitRunnable() {
                                 int ticks = 0;
@@ -140,10 +143,6 @@ public class ShadowDashSkill extends Skill {
                 }.runTaskTimer(plugin, 0L, 10L);
 
                 return true;
-            } else {
-                player.sendMessage(miniMessage.deserialize("<red>대상을 추적할 수 없습니다.</red>"));
-                return false;
-            }
         } else {
             player.sendMessage(miniMessage.deserialize("<red>시야에 대상이 없습니다.</red>"));
             return false;
