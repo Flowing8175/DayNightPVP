@@ -1,5 +1,6 @@
 package com.daynightwarfare;
 
+import com.daynightwarfare.listeners.GameListener;
 import com.daynightwarfare.managers.PlayerManager;
 import com.daynightwarfare.managers.TeamManager;
 import net.kyori.adventure.text.Component;
@@ -84,6 +85,10 @@ public class GameManager {
 
         if (plugin.getSkillManager() != null) {
             plugin.getSkillManager().cleanUpAllSkills();
+        }
+
+        if (GameListener.getInstance() != null) {
+            GameListener.getInstance().reset();
         }
 
         teamManager.clearTeams();

@@ -16,11 +16,21 @@ import org.bukkit.attribute.Attribute;
 
 public class GameListener implements Listener {
 
+    private static GameListener instance;
     private final GameManager gameManager;
     private final Set<UUID> resurrectedPlayers = new HashSet<>();
 
     public GameListener(DayNightPlugin plugin) {
+        instance = this;
         this.gameManager = plugin.getGameManager();
+    }
+
+    public static GameListener getInstance() {
+        return instance;
+    }
+
+    public void reset() {
+        resurrectedPlayers.clear();
     }
 
     @EventHandler
