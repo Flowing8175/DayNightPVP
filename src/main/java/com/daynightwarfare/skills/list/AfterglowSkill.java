@@ -9,8 +9,13 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.NamespacedKey;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageEvent.DamageModifier;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -19,10 +24,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class AfterglowSkill extends Skill {
+public class AfterglowSkill extends Skill implements Listener {
 
     private final Map<UUID, BukkitTask> afterglowTasks = new HashMap<>();
     private final Map<UUID, Location> lightBlockLocations = new HashMap<>();
+    private final NamespacedKey afterglowDamageKey;
 
     public AfterglowSkill() {
         super(
@@ -33,6 +39,7 @@ public class AfterglowSkill extends Skill {
                 Material.TORCH,
                 45L
         );
+        this.afterglowDamageKey = new NamespacedKey(plugin, "afterglow_damage");
     }
 
     @Override
@@ -76,9 +83,8 @@ public class AfterglowSkill extends Skill {
                                 continue;
                             }
                         }
-                        EntityDamageByEntityEvent damageEvent = new EntityDamageByEntityEvent(player, target, EntityDamageEvent.DamageCause.CUSTOM, 1.0);
-                        target.setLastDamageCause(damageEvent);
-                        target.damage(1.0);
+                        target.getPersistentDataContainer().set(afterglowDamageKey, PersistentDataType.BYTE, (byte) 1);
+                        target.damage(1.0, player);
                     }
                 }
                 executions++;
@@ -87,6 +93,17 @@ public class AfterglowSkill extends Skill {
 
         afterglowTasks.put(player.getUniqueId(), task);
         return true;
+    }
+
+    @EventHandler
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity target)) {
+            return;
+        }
+        if (target.getPersistentDataContainer().has(afterglowDamageKey, PersistentDataType.BYTE)) {
+            event.setDamage(DamageModifier.ARMOR, 0);
+            target.getPersistentDataContainer().remove(afterglowDamageKey);
+        }
     }
 
     private void updateLightBlock(Player player) {
