@@ -99,7 +99,10 @@ public class ShadowDashSkill extends Skill {
                                     if (ticks >= duration) {
                                         this.cancel();
                                         if (player.isOnline() && !player.isDead()) {
-                                            player.teleport(originalLocation);
+                                            Location teleportLocation = originalLocation.clone();
+                                            teleportLocation.setYaw(player.getLocation().getYaw());
+                                            teleportLocation.setPitch(player.getLocation().getPitch());
+                                            player.teleport(teleportLocation);
                                         }
                                         return;
                                     }
