@@ -9,10 +9,15 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+import org.bukkit.attribute.Attribute;
 
 public class GameListener implements Listener {
 
     private final GameManager gameManager;
+    private final Set<UUID> resurrectedPlayers = new HashSet<>();
 
     public GameListener(DayNightPlugin plugin) {
         this.gameManager = plugin.getGameManager();
@@ -44,6 +49,14 @@ public class GameListener implements Listener {
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
         if (gameManager.getTeamManager().getPlayerTeam(player) != null) {
+            if (!resurrectedPlayers.contains(player.getUniqueId())) {
+                resurrectedPlayers.add(player.getUniqueId());
+                event.setCancelled(true);
+                player.setHealth(player.getMaxHealth());
+                player.sendMessage("부활했습니다!");
+                return;
+            }
+
             event.getDrops().clear();
             event.setDroppedExp(0);
 

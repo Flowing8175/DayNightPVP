@@ -5,10 +5,13 @@ import com.daynightwarfare.GameManager;
 import com.daynightwarfare.TeamType;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import com.daynightwarfare.GameState;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.HashSet;
 import java.util.Random;
@@ -63,6 +66,15 @@ public class PlayerManager {
     }
 
     public void handleLateJoin(Player player) {
+        if (gameManager.getState() == GameState.IN_GAME) {
+            player.getInventory().setHelmet(new ItemStack(Material.IRON_HELMET));
+            player.getInventory().setChestplate(new ItemStack(Material.IRON_CHESTPLATE));
+            player.getInventory().setLeggings(new ItemStack(Material.IRON_LEGGINGS));
+            player.getInventory().setBoots(new ItemStack(Material.IRON_BOOTS));
+            player.getInventory().addItem(new ItemStack(Material.STONE_PICKAXE));
+            player.getInventory().addItem(new ItemStack(Material.IRON_AXE));
+        }
+
         long lightTeamCount = teamManager.getPlayerTeams().values().stream().filter(t -> t == TeamType.APOSTLE_OF_LIGHT).count();
         long moonTeamCount = teamManager.getPlayerTeams().values().stream().filter(t -> t == TeamType.APOSTLE_OF_MOON).count();
         TeamType assignedTeam = (lightTeamCount <= moonTeamCount) ? TeamType.APOSTLE_OF_LIGHT : TeamType.APOSTLE_OF_MOON;
