@@ -69,8 +69,8 @@ public class MirrorDashSkill extends Skill {
                 new BukkitRunnable() {
                     int count = 0;
                     final Title.Times times = Title.Times.times(Duration.ZERO, Duration.ofMillis(500), Duration.ZERO);
-                    final Component subtitle1 = miniMessage.deserialize("<yellow>【 ♥︎ 】</yellow>");
-                    final Component subtitle2 = miniMessage.deserialize("<yellow>【 </yellow><red>♥︎</red><yellow> 】</yellow>");
+                    final Component subtitle1 = miniMessage.deserialize("<yellow>[ ♥︎ ]</yellow>");
+                    final Component subtitle2 = miniMessage.deserialize("<yellow>[</yellow><red> ♥︎ </red><yellow>]</yellow>");
 
                     @Override
                     public void run() {
