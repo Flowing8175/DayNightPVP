@@ -82,7 +82,7 @@ public class MirrorDashSkill extends Skill {
 
                             new BukkitRunnable() {
                                 int ticks = 0;
-                                final int duration = 8 * 20;
+                                final int duration = 6 * 20;
                                 final Particle.DustOptions dustOptions = new Particle.DustOptions(Color.YELLOW, 1);
 
                                 @Override

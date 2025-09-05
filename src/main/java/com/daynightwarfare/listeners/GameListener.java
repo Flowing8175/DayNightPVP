@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.GameMode;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 
@@ -21,6 +22,19 @@ public class GameListener implements Listener {
     public void onEntityDamage(EntityDamageEvent event) {
         if (gameManager.isGracePeriodActive()) {
             if (event.getEntity() instanceof Player) {
+                event.setCancelled(true);
+            }
+        }
+    }
+
+    @EventHandler
+    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (event.getDamager() instanceof Player && event.getEntity() instanceof Player) {
+            Player damager = (Player) event.getDamager();
+            Player victim = (Player) event.getEntity();
+            if (gameManager.getPlayerManager().isAlive(damager) &&
+                    gameManager.getPlayerManager().isAlive(victim) &&
+                    gameManager.getTeamManager().getPlayerTeam(damager) == gameManager.getTeamManager().getPlayerTeam(victim)) {
                 event.setCancelled(true);
             }
         }
