@@ -34,16 +34,16 @@ public class TimeManager {
                 // Sunset transition (11000 to 13000)
                 if (currentTime >= 11000 && currentTime < 13000) {
                     double progress = (currentTime - 11000) / 2000.0;
-                    double parabola = -4 * progress * (progress - 1);
-                    double speedMultiplier = 1 + 19 * parabola;
+                    double easedProgress = easeInOutQuad(progress);
+                    double speedMultiplier = 1 + 19 * easedProgress;
                     timeToAdd = timeMultiplier * speedMultiplier;
                 }
 
                 // Sunrise transition (22000 to 24000)
                 if (currentTime >= 22000 && currentTime < 24000) {
                     double progress = (currentTime - 22000) / 2000.0;
-                    double parabola = -4 * progress * (progress - 1);
-                    double speedMultiplier = 1 + 19 * parabola;
+                    double easedProgress = easeInOutQuad(progress);
+                    double speedMultiplier = 1 + 19 * easedProgress;
                     timeToAdd = timeMultiplier * speedMultiplier;
                 }
 
@@ -69,6 +69,10 @@ public class TimeManager {
         } else if (currentTime >= 23000 || currentTime < 1000) { // Reset after sunrise is over
             announcedSunrise = false;
         }
+    }
+
+    private double easeInOutQuad(double t) {
+        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
     }
 
     public void restoreDefaults() {
