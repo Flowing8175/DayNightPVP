@@ -34,17 +34,13 @@ public class TimeManager {
                 // Sunset transition (11000 to 13000)
                 if (currentTime >= 11000 && currentTime < 13000) {
                     double progress = (currentTime - 11000) / 2000.0;
-                    double easedProgress = easeInOutQuad(progress);
-                    double speedMultiplier = 1 + 19 * easedProgress;
-                    timeToAdd = timeMultiplier * speedMultiplier;
+                    timeToAdd = getEasedTimeToAdd(progress, timeMultiplier, 20 * timeMultiplier);
                 }
 
                 // Sunrise transition (22000 to 24000)
                 if (currentTime >= 22000 && currentTime < 24000) {
                     double progress = (currentTime - 22000) / 2000.0;
-                    double easedProgress = easeInOutQuad(progress);
-                    double speedMultiplier = 1 + 19 * easedProgress;
-                    timeToAdd = timeMultiplier * speedMultiplier;
+                    timeToAdd = getEasedTimeToAdd(progress, timeMultiplier, 20 * timeMultiplier);
                 }
 
                 world.setTime(currentTime + (long)timeToAdd);
@@ -73,6 +69,18 @@ public class TimeManager {
 
     private double easeInOutQuad(double t) {
         return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+    }
+
+    private double getEasedTimeToAdd(double progress, double baseTimeToAdd, double peakTimeToAdd) {
+        if (progress < 0.5) {
+            // Ease in from baseTimeToAdd to peakTimeToAdd
+            double easedProgress = easeInOutQuad(progress * 2); // Scale progress to 0-1 for the first half
+            return baseTimeToAdd + (peakTimeToAdd - baseTimeToAdd) * easedProgress;
+        } else {
+            // Ease out from peakTimeToAdd to baseTimeToAdd
+            double easedProgress = easeInOutQuad((progress - 0.5) * 2); // Scale progress to 0-1 for the second half
+            return peakTimeToAdd - (peakTimeToAdd - baseTimeToAdd) * easedProgress;
+        }
     }
 
     public void restoreDefaults() {
