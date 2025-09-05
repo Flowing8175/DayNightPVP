@@ -1,7 +1,6 @@
 package com.daynightwarfare.commands;
 
 import com.daynightwarfare.DayNightPlugin;
-import com.daynightwarfare.commands.subcommands.GiveCommand;
 import com.daynightwarfare.commands.subcommands.GraceCommand;
 import com.daynightwarfare.commands.subcommands.StartCommand;
 import com.daynightwarfare.commands.subcommands.StopCommand;
@@ -31,7 +30,6 @@ public class GameCommand implements CommandExecutor, TabCompleter {
         registerSubCommand(new StopCommand(plugin));
         registerSubCommand(new GraceCommand(plugin));
         registerSubCommand(new TeamCommand(plugin));
-        registerSubCommand(new GiveCommand(plugin));
     }
 
     private void registerSubCommand(SubCommand subCommand) {

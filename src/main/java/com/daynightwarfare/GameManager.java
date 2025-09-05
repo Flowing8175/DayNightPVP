@@ -297,7 +297,7 @@ public class GameManager {
 
     public void supplySkillItems(Player player) {
         String[] sunSkills = {"solar-flare", "suns-spear", "afterglow", "mirror-dash"};
-        String[] moonSkills = {"moons-chain", "shadow-wings"};
+        String[] moonSkills = {"moons-chain", "shadow-wings", "shadow-dash"};
 
         player.getInventory().clear();
         TeamType team = teamManager.getPlayerTeam(player);
