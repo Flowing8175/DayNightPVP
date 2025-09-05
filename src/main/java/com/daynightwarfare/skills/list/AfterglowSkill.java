@@ -58,7 +58,7 @@ public class AfterglowSkill extends Skill {
             int executions = 0;
             @Override
             public void run() {
-                if (!player.isOnline() || executions >= 12) { // 12 executions * 10 ticks = 120 ticks = 6 seconds
+                if (!player.isOnline() || executions >= 8) {
                     this.cancel();
                     removeLightBlock(player);
                     afterglowTasks.remove(player.getUniqueId());

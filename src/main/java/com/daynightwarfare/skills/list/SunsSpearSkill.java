@@ -40,7 +40,7 @@ public class SunsSpearSkill extends Skill {
         double velocityMultiplier = isNight ? 1.5 : 3.0;
 
         if (isNight) {
-            player.sendMessage("빛이 충분히 모이지 않아 순수한 창을 만들기 어렵습니다..");
+            player.sendMessage("빛이 충분히 모이지 않아 온전한 창을 만들 수 없습니다. (데미지 약화)");
         }
 
         Vector velocity = player.getEyeLocation().getDirection().multiply(velocityMultiplier);
