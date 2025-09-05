@@ -36,10 +36,22 @@ public class SunsSpearSkill extends Skill {
 
     @Override
     public boolean execute(Player player) {
-        Vector velocity = player.getEyeLocation().getDirection().multiply(3);
+        boolean isNight = !player.getWorld().isDayTime();
+        double velocityMultiplier = isNight ? 1.5 : 3.0;
+
+        if (isNight) {
+            player.sendMessage("빛이 충분히 모이지 않아 순수한 창을 만들기 어렵습니다..");
+        }
+
+        Vector velocity = player.getEyeLocation().getDirection().multiply(velocityMultiplier);
         Trident spear = player.launchProjectile(Trident.class, velocity);
         spear.setGlowing(true);
         spear.getPersistentDataContainer().set(sunsSpearKey, PersistentDataType.STRING, player.getUniqueId().toString());
+
+        if (isNight) {
+            spear.getPersistentDataContainer().set(new NamespacedKey(plugin, "suns_spear_night"), PersistentDataType.BYTE, (byte) 1);
+        }
+
         return true;
     }
 
@@ -49,9 +61,15 @@ public class SunsSpearSkill extends Skill {
         if (!spear.getPersistentDataContainer().has(sunsSpearKey, PersistentDataType.STRING)) return;
 
         if (event.getHitEntity() instanceof LivingEntity target) {
-            target.damage(6.0);
+            double damage = 6.0;
+            NamespacedKey nightKey = new NamespacedKey(plugin, "suns_spear_night");
+            if (spear.getPersistentDataContainer().has(nightKey, PersistentDataType.BYTE)) {
+                damage = 3.0;
+            }
+            target.damage(damage);
             target.setFireTicks(40);
             target.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 100, 0));
+            target.setVelocity(spear.getVelocity().multiply(0.2).setY(0.2));
         } else if (event.getHitBlock() != null) {
             Block hitBlock = event.getHitBlock();
             Block lightBlock = hitBlock.getRelative(event.getHitBlockFace());

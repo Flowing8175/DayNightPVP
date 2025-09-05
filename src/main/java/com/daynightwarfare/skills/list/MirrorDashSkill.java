@@ -59,12 +59,21 @@ public class MirrorDashSkill extends Skill {
 
         if (bestTarget != null) {
             Vector targetLookDir = bestTarget.getLocation().getDirection().normalize();
-            Location behind = bestTarget.getLocation().subtract(targetLookDir.multiply(3));
-            behind.setDirection(bestTarget.getLocation().toVector().subtract(behind.toVector()));
+            Location teleportLocation = null;
 
-            if (behind.getBlock().isPassable() && behind.clone().add(0, 1, 0).getBlock().isPassable()) {
+            for (double d = 3.0; d >= 1.0; d -= 0.5) {
+                Location behind = bestTarget.getLocation().subtract(targetLookDir.clone().multiply(d));
+                if (behind.getBlock().isPassable() && behind.clone().add(0, 1, 0).getBlock().isPassable()) {
+                    teleportLocation = behind;
+                    break;
+                }
+            }
+
+            if (teleportLocation != null) {
+                teleportLocation.setDirection(bestTarget.getLocation().toVector().subtract(teleportLocation.toVector()));
+
                 final Player finalBestTarget = bestTarget;
-                final Location finalBehind = behind;
+                final Location finalBehind = teleportLocation;
 
                 new BukkitRunnable() {
                     int count = 0;

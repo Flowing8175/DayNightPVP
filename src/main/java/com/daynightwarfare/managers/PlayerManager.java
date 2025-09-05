@@ -58,9 +58,6 @@ public class PlayerManager {
             player.setGameMode(GameMode.SPECTATOR);
             player.sendMessage(miniMessage.deserialize("<gray>관전자로 다시 참여했습니다.</gray>"));
         } else {
-            if (player.getBedSpawnLocation() != null) {
-                player.teleport(player.getBedSpawnLocation());
-            }
             player.sendMessage(miniMessage.deserialize("<green>게임에 다시 참여했습니다!</green>"));
         }
     }

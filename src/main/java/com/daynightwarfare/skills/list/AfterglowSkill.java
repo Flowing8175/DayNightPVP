@@ -9,6 +9,8 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -74,7 +76,9 @@ public class AfterglowSkill extends Skill {
                                 continue;
                             }
                         }
-                        target.damage(1.0, player);
+                        EntityDamageByEntityEvent damageEvent = new EntityDamageByEntityEvent(player, target, EntityDamageEvent.DamageCause.CUSTOM, 1.0);
+                        target.setLastDamageCause(damageEvent);
+                        target.damage(1.0);
                     }
                 }
                 executions++;
