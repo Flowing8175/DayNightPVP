@@ -66,13 +66,7 @@ public class GameListener implements Listener {
                 player.setHealth(player.getMaxHealth());
                 player.sendMessage("부활했습니다!");
 
-                com.daynightwarfare.TeamType team = gameManager.getTeamManager().getPlayerTeam(player);
-                if (team != null) {
-                    Location base = (team == com.daynightwarfare.TeamType.APOSTLE_OF_LIGHT) ? gameManager.getLightTeamBaseLocation() : gameManager.getMoonTeamBaseLocation();
-                    if (base != null) {
-                        player.teleport(base);
-                    }
-                }
+                gameManager.teleportPlayerToTeamSpawn(player);
                 return;
             }
 

@@ -61,13 +61,7 @@ public class ReviveCommand implements SubCommand {
         target.setFoodLevel(20);
         target.setFireTicks(0);
 
-        TeamType team = gameManager.getTeamManager().getPlayerTeam(target);
-        if (team != null) {
-            Location base = (team == TeamType.APOSTLE_OF_LIGHT) ? gameManager.getLightTeamBaseLocation() : gameManager.getMoonTeamBaseLocation();
-            if (base != null) {
-                target.teleport(base);
-            }
-        }
+        gameManager.teleportPlayerToTeamSpawn(target);
 
         sender.sendMessage(miniMessage.deserialize("<green>" + target.getName() + "님을 부활시켰습니다.</green>"));
         target.sendMessage(miniMessage.deserialize("<green>관리자에 의해 부활되었습니다.</green>"));

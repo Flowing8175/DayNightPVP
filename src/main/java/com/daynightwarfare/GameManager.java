@@ -390,4 +390,27 @@ public class GameManager {
             resetGame(false);
         }
     }
+
+    public void teleportPlayerToTeamSpawn(Player player) {
+        TeamType team = teamManager.getPlayerTeam(player);
+        if (team == null) return;
+
+        Location base = (team == TeamType.APOSTLE_OF_LIGHT) ? this.lightTeamBaseLocation : this.moonTeamBaseLocation;
+        if (base != null) {
+            Random random = new Random();
+            int offsetX = random.nextInt(31) - 15;
+            int offsetZ = random.nextInt(31) - 15;
+
+            double finalX = base.getX() + offsetX;
+            double finalZ = base.getZ() + offsetZ;
+
+            Block safeBlock = getSafeHighestBlock(base.getWorld(), (int) finalX, (int) finalZ);
+            if (safeBlock != null) {
+                Location tpLocation = safeBlock.getLocation().add(0.5, 1.5, 0.5);
+                player.teleportAsync(tpLocation);
+            } else {
+                player.teleportAsync(base.getWorld().getSpawnLocation());
+            }
+        }
+    }
 }

@@ -7,6 +7,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
+import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Trident;
@@ -48,6 +49,7 @@ public class SunsSpearSkill extends Skill {
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_TRIDENT_THROW, 1.0f, 1.0f);
         Vector velocity = player.getEyeLocation().getDirection().multiply(velocityMultiplier);
         Trident spear = player.launchProjectile(Trident.class, velocity);
+        spear.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
         spear.setGlowing(true);
         spear.getPersistentDataContainer().set(sunsSpearKey, PersistentDataType.STRING, player.getUniqueId().toString());
 
