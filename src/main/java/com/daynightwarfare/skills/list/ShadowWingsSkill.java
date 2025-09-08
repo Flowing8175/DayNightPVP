@@ -113,6 +113,7 @@ public class ShadowWingsSkill extends Skill {
         fireworkUsed.remove(uuid);
         elytraBroken.remove(uuid);
         moonSmashUsed.remove(uuid);
+        player.getPersistentDataContainer().remove(moonSmashKey);
 
         if (grantLingeringImmunity) {
             fallImmunityPlayers.add(uuid);
@@ -171,7 +172,7 @@ public class ShadowWingsSkill extends Skill {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
 
-        boolean isEligible = originalChestplates.containsKey(uuid) || fallImmunityPlayers.contains(uuid);
+        boolean isEligible = originalChestplates.containsKey(uuid);
         boolean hasUsedSmash = moonSmashUsed.getOrDefault(uuid, true);
         boolean isBroken = elytraBroken.getOrDefault(uuid, false);
 
