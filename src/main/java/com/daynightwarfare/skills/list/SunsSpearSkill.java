@@ -130,10 +130,10 @@ public class SunsSpearSkill extends Skill {
         if (!(event.getDamager() instanceof Trident spear)) return;
         if (!spear.getPersistentDataContainer().has(sunsSpearKey, PersistentDataType.STRING)) return;
 
-        double damage = 4.0;
+        double damage = 5.0;
         NamespacedKey nightKey = new NamespacedKey(plugin, "suns_spear_night");
         if (spear.getPersistentDataContainer().has(nightKey, PersistentDataType.BYTE)) {
-            damage = 2.0;
+            damage = 3.0;
         }
         event.setDamage(damage);
     }
