@@ -4,6 +4,7 @@ main: com.daynightwarfare.DayNightPlugin
 api-version: '1.20'
 author: Jules
 description: A team-based PvP game mode with day/night skills.
+depend: [ProtocolLib]
 commands:
   game:
     description: Main command for the Day & Night Warfare game.
