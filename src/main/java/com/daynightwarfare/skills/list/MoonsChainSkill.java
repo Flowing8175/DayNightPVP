@@ -29,10 +29,7 @@ public class MoonsChainSkill extends Skill {
             if (entity instanceof Player) {
                 Player targetPlayer = (Player) entity;
                 if (gameManager.getTeamManager().getPlayerTeam(targetPlayer) != TeamType.APOSTLE_OF_MOON) {
-                    targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 2));
-                    // The skill disabling logic will need to be handled in a central place,
-                    // maybe in a new PlayerManager class as planned.
-                    // For now, I'll leave a comment.
+                    targetPlayer.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20, 19));
                 }
             }
         }

@@ -43,7 +43,7 @@ public class SunsSpearSkill extends Skill {
         double velocityMultiplier = isNight ? 1.5 : 3.0;
 
         if (isNight) {
-            player.sendMessage("빛이 충분히 모이지 않아 온전한 창을 만들 수 없습니다. (데미지 약화)");
+            player.sendMessage(miniMessage.deserialize("<gray>빛이 충분히 모이지 않아 온전한 창을 만들 수 없습니다.</gray>"));
         }
 
         player.getWorld().playSound(player.getLocation(), Sound.ITEM_TRIDENT_THROW, 1.0f, 1.0f);
@@ -79,19 +79,33 @@ public class SunsSpearSkill extends Skill {
         boolean removeSpear = true;
 
         if (event.getHitEntity() instanceof LivingEntity target) {
-            double damage = 6.0;
+            double damage = 4.0;
+            int fireTicks = 60;
             NamespacedKey nightKey = new NamespacedKey(plugin, "suns_spear_night");
             if (spear.getPersistentDataContainer().has(nightKey, PersistentDataType.BYTE)) {
-                damage = 3.0;
+                damage = 2.0;
+                fireTicks = 10;
             }
             target.damage(damage);
-            target.setFireTicks(40);
+            target.setFireTicks(fireTicks);
             target.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 100, 0));
             target.setVelocity(spear.getVelocity().multiply(0.2).setY(0.2));
         } else if (event.getHitBlock() != null) {
             Block hitBlock = event.getHitBlock();
             Block lightBlock = hitBlock.getRelative(event.getHitBlockFace());
-            if (lightBlock.getType() == Material.AIR) {
+            Material hitBlockType = lightBlock.getType();
+            if (hitBlockType == Material.SNOW ||
+                hitBlockType == Material.SHORT_GRASS ||
+                hitBlockType == Material.TALL_GRASS ||
+                hitBlockType == Material.FERN ||
+                hitBlockType == Material.LARGE_FERN ||
+                hitBlockType == Material.DEAD_BUSH ||
+                hitBlockType == Material.VINE ||
+                hitBlockType == Material.LILY_PAD ||
+                hitBlockType == Material.SUGAR_CANE ||
+                hitBlockType == Material.WATER ||
+                hitBlockType == Material.LAVA ||
+                hitBlockType == Material.AIR) {
                 lightBlock.setType(Material.LIGHT);
                 removeSpear = false;
                 new BukkitRunnable() {
