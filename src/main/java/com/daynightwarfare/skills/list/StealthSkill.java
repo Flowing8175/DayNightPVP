@@ -8,9 +8,11 @@ import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.Pair;
+import com.comphenix.protocol.wrappers.Pair;
 import com.daynightwarfare.TeamType;
 import com.daynightwarfare.skills.Skill;
 import org.bukkit.Bukkit;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.potion.PotionEffect;
@@ -45,6 +47,8 @@ public class StealthSkill extends Skill {
         // Apply Glowing for 3.5 seconds (70 ticks)
         player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 70, 0, true, false, true));
 
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BREEZE_LAND, 1.0f, 0.75f);
+
         hidePlayerEquipment(player);
 
         return true;
@@ -71,6 +75,7 @@ public class StealthSkill extends Skill {
         // After 3.5 seconds, unregister listener and show equipment again
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             protocolManager.removePacketListener(packetAdapter);
+            player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BREEZE_LAND, 1.0f, 0.65f);
             for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
                 if (!onlinePlayer.equals(player)) {
                     showArmorForPlayer(player, onlinePlayer);
