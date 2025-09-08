@@ -6,8 +6,8 @@ import net.kyori.adventure.text.format.Style;
 import net.kyori.adventure.text.format.TextDecoration;
 
 public enum TeamType {
-    APOSTLE_OF_LIGHT("빛의 사도", Style.style(NamedTextColor.YELLOW, TextDecoration.BOLD)),
-    APOSTLE_OF_MOON("달의 사도", Style.style(NamedTextColor.AQUA, TextDecoration.BOLD));
+    APOSTLE_OF_LIGHT("빛의 사도", Style.style(NamedTextColor.YELLOW)),
+    APOSTLE_OF_MOON("달의 사도", Style.style(NamedTextColor.AQUA));
 
     private final String displayName;
     private final Style displayStyle;

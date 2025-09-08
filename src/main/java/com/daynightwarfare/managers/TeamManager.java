@@ -2,6 +2,8 @@ package com.daynightwarfare.managers;
 
 import com.daynightwarfare.TeamType;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.Style;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.entity.Player;
@@ -76,8 +78,9 @@ public class TeamManager {
             resetPlayerDisplayName(player);
             return;
         }
-        Component prefix = team.getStyledDisplayName().append(Component.text(" "));
-        Component newName = prefix.append(Component.text(player.getName()));
+        Component prefix = Component.text(team.getDisplayName(), team.getDisplayStyle().color(), TextDecoration.BOLD).append(Component.text(" "));
+        Component playerNameComponent = Component.text(player.getName()).style(team.getDisplayStyle());
+        Component newName = prefix.append(playerNameComponent);
 
         player.displayName(newName);
         player.playerListName(newName);
