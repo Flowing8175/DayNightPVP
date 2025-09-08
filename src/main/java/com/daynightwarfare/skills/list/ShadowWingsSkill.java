@@ -153,7 +153,7 @@ public class ShadowWingsSkill extends Skill {
                                 continue;
                             }
 
-                            double damage = player.getFallDistance() * 0.2 - player.getLocation().distance(target.getLocation());
+                            double damage = player.getFallDistance() * 0.5 - player.getLocation().distance(target.getLocation()) * 0.5;
                             if (damage > 0) {
                                 target.damage(Math.min(damage, 8.0), player);
                             }
