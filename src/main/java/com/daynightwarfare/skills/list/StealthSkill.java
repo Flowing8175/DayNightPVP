@@ -40,12 +40,10 @@ public class StealthSkill extends Skill {
 
     @Override
     public boolean execute(Player player) {
-        // Apply Invisibility II for 3.5 seconds (100 ticks)
         player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 100, 1, true, false, true));
-        // Apply Speed V for 3.5 seconds (100 ticks)
         player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 4, true, false, true));
-        // Apply Glowing for 3.5 seconds (100 ticks)
         player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 100, 0, true, false, true));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 100, 2, true, false, true));
 
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BREEZE_LAND, 1.0f, 0.75f);
 
