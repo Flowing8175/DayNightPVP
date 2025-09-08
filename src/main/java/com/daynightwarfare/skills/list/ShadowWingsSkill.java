@@ -96,6 +96,10 @@ public class ShadowWingsSkill extends Skill {
         BukkitTask timeoutTask = timeoutTasks.remove(uuid);
         if (timeoutTask != null) timeoutTask.cancel();
 
+        if (gameManager.isGameInProgress()) {
+            setCooldown(player);
+        }
+
         player.getInventory().setChestplate(originalChestplates.remove(uuid));
         player.getInventory().remove(Material.FIREWORK_ROCKET);
         playerSkillStates.remove(uuid);
