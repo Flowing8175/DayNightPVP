@@ -18,6 +18,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
@@ -46,7 +47,7 @@ public class ShadowWingsSkill extends Skill {
         super(
                 "shadow-wings",
                 "<aqua>그림자 날개</aqua>",
-                Arrays.asList("<gray>우클릭하여 일시적으로 비행합니다.</gray>"),
+                Arrays.asList("<gray>우클릭하여 날개를 펼쳐 일시적으로 비행합니다.</gray>"),
                 TeamType.APOSTLE_OF_MOON,
                 Material.FEATHER,
                 60L
@@ -75,6 +76,12 @@ public class ShadowWingsSkill extends Skill {
         }
         elytra.setItemMeta(meta);
         player.getInventory().setChestplate(elytra);
+
+        ItemStack firework = new ItemStack(Material.FIREWORK_ROCKET);
+        FireworkMeta fwMeta = (FireworkMeta) firework.getItemMeta();
+        fwMeta.setPower(1);
+        firework.setItemMeta(fwMeta);
+        player.getInventory().addItem(firework);
 
         BukkitTask timeoutTask = plugin.getServer().getScheduler().runTaskLater(plugin, () -> removeElytra(player, true), 200L);
         timeoutTasks.put(uuid, timeoutTask);
