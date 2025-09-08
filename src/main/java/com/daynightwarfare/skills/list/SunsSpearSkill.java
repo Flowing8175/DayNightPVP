@@ -12,6 +12,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Trident;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -79,14 +80,11 @@ public class SunsSpearSkill extends Skill {
         boolean removeSpear = true;
 
         if (event.getHitEntity() instanceof LivingEntity target) {
-            double damage = 4.0;
             int fireTicks = 60;
             NamespacedKey nightKey = new NamespacedKey(plugin, "suns_spear_night");
             if (spear.getPersistentDataContainer().has(nightKey, PersistentDataType.BYTE)) {
-                damage = 2.0;
                 fireTicks = 10;
             }
-            target.damage(damage);
             target.setFireTicks(fireTicks);
             target.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 100, 0));
             target.setVelocity(spear.getVelocity().multiply(0.2).setY(0.2));
@@ -125,5 +123,18 @@ public class SunsSpearSkill extends Skill {
         if (removeSpear && spear.isValid()) {
             spear.remove();
         }
+    }
+
+    @EventHandler
+    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Trident spear)) return;
+        if (!spear.getPersistentDataContainer().has(sunsSpearKey, PersistentDataType.STRING)) return;
+
+        double damage = 4.0;
+        NamespacedKey nightKey = new NamespacedKey(plugin, "suns_spear_night");
+        if (spear.getPersistentDataContainer().has(nightKey, PersistentDataType.BYTE)) {
+            damage = 2.0;
+        }
+        event.setDamage(damage);
     }
 }
