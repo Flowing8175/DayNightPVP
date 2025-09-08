@@ -26,12 +26,6 @@ public class SolarFlareSkill extends Skill {
 
     @Override
     public boolean execute(Player player) {
-        long time = player.getWorld().getTime();
-        if (time > 12300 && time < 23850) {
-            player.sendMessage(miniMessage.deserialize("<red>태양 섬광은 낮에만 사용할 수 있습니다.</red>"));
-            return false;
-        }
-
         for (Player targetPlayer : Bukkit.getOnlinePlayers()) {
             if (targetPlayer.equals(player)) continue;
             if (targetPlayer.getWorld() != player.getWorld() || targetPlayer.getLocation().distanceSquared(player.getLocation()) > 15 * 15) continue;

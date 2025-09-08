@@ -72,7 +72,7 @@ public class ShadowWingsSkill extends Skill {
             byte lightLevel = player.getLocation().getBlock().getLightLevel();
             if (lightLevel >= 7) {
                 ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 2);
-                player.sendMessage("§c어둠의 힘이 부족하여 날개가 불완전합니다.");
+                player.sendMessage(miniMessage.deserialize("<red>어둠의 힘이 부족하여 날개가 불완전합니다.</red>"));
             } else {
                 ((Damageable) meta).setDamage(elytra.getType().getMaxDurability() - 4);
             }
