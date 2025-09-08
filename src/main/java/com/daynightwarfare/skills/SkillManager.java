@@ -1,39 +1,50 @@
 package com.daynightwarfare.skills;
 
 import com.daynightwarfare.DayNightPlugin;
+import com.daynightwarfare.DayNightPlugin;
+import com.daynightwarfare.GameManager;
+import com.daynightwarfare.TeamType;
 import com.daynightwarfare.skills.list.AfterglowSkill;
-import com.daynightwarfare.skills.list.ShadowDashSkill;
 import com.daynightwarfare.skills.list.MoonsChainSkill;
+import com.daynightwarfare.skills.list.ShadowDashSkill;
 import com.daynightwarfare.skills.list.ShadowWingsSkill;
 import com.daynightwarfare.skills.list.SolarFlareSkill;
 import com.daynightwarfare.skills.list.SunsSpearSkill;
+import com.daynightwarfare.skills.list.StealthSkill;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
-import com.daynightwarfare.GameManager;
-import com.daynightwarfare.TeamType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class SkillManager implements Listener {
     private final DayNightPlugin plugin;
     private final GameManager gameManager;
     private final Map<String, Skill> skills = new HashMap<>();
     private final NamespacedKey skillIdKey;
+    private final Map<UUID, Long> sneakingPlayers = new ConcurrentHashMap<>();
+    private final StealthSkill stealthSkill;
+
 
     public SkillManager(DayNightPlugin plugin) {
         this.plugin = plugin;
         this.gameManager = plugin.getGameManager();
         this.skillIdKey = new NamespacedKey(plugin, "skill_id");
+        this.stealthSkill = new StealthSkill();
         registerSkills();
+        startSneakChecker();
     }
 
     private void registerSkills() {
@@ -43,11 +54,57 @@ public class SkillManager implements Listener {
         addSkill(new ShadowDashSkill());
         addSkill(new MoonsChainSkill());
         addSkill(new ShadowWingsSkill());
+        addSkill(stealthSkill);
     }
 
     private void addSkill(Skill skill) {
         skills.put(skill.getId(), skill);
-        plugin.getServer().getPluginManager().registerEvents(skill, plugin);
+        if (skill.getMaterial() != null) { // Only register events for skills with items
+            plugin.getServer().getPluginManager().registerEvents(skill, plugin);
+        }
+    }
+
+    private void startSneakChecker() {
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (sneakingPlayers.isEmpty()) {
+                    return;
+                }
+
+                long currentTime = System.currentTimeMillis();
+                sneakingPlayers.forEach((uuid, startTime) -> {
+                    Player player = plugin.getServer().getPlayer(uuid);
+                    if (player == null || !player.isOnline() || !player.isSneaking()) {
+                        sneakingPlayers.remove(uuid);
+                        return;
+                    }
+
+                    if (currentTime - startTime >= 3000) {
+                        if (stealthSkill.canUse(player)) {
+                            if (stealthSkill.execute(player)) {
+                                stealthSkill.setCooldown(player);
+                            }
+                        }
+                        sneakingPlayers.remove(uuid);
+                    }
+                });
+            }
+        }.runTaskTimer(plugin, 20L, 20L); // Check every second
+    }
+
+    @EventHandler
+    public void onPlayerToggleSneak(PlayerToggleSneakEvent event) {
+        Player player = event.getPlayer();
+        if (gameManager.getTeamManager().getPlayerTeam(player) != TeamType.APOSTLE_OF_LIGHT) {
+            return;
+        }
+
+        if (event.isSneaking()) {
+            sneakingPlayers.put(player.getUniqueId(), System.currentTimeMillis());
+        } else {
+            sneakingPlayers.remove(player.getUniqueId());
+        }
     }
 
     public Skill getSkill(String id) {
