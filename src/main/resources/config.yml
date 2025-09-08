@@ -2,7 +2,7 @@
 grace-period-minutes: 15
 
 # Multiplier for the day/night cycle speed. 1.0 is default speed.
-day-night-cycle-multiplier: 2.0
+day-night-cycle-multiplier: 4.0
 
 # Survivor Locator Settings
 survivor-locator:
@@ -13,10 +13,10 @@ survivor-locator:
 
 # Skill Cooldowns (in seconds)
 cooldowns:
-  solar-flare: 30
+  solar-flare: 20
   suns-spear: 20
-  afterglow: 30
-  mirror-dash: 60
-  moons-chain: 45
+  afterglow: 25
+  mirror-dash: 30
+  moons-chain: 20
   shadow-wings: 30
-  moon-smash: 40
+  moon-smash: 10
