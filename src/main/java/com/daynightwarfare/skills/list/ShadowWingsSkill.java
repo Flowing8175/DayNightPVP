@@ -205,7 +205,8 @@ public class ShadowWingsSkill extends Skill {
         UUID uuid = player.getUniqueId();
 
         if (event.getCause() == EntityDamageEvent.DamageCause.FALL) {
-            if (fallImmunityPlayers.contains(uuid) || playerSkillStates.containsKey(uuid)) {
+            SkillState state = playerSkillStates.get(uuid);
+            if (fallImmunityPlayers.contains(uuid) || state == SkillState.GLIDING || state == SkillState.DROPPING) {
                 event.setCancelled(true);
             }
         }
