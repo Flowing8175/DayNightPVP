@@ -3,23 +3,22 @@ package com.daynightwarfare.skills.list;
 import com.daynightwarfare.TeamType;
 import com.daynightwarfare.skills.Skill;
 import org.bukkit.Material;
-import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.block.Block;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemBreakEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
@@ -32,15 +31,16 @@ import java.util.UUID;
 
 public class ShadowWingsSkill extends Skill {
 
+    private enum SkillState {
+        WAITING_FOR_TAKEOFF,
+        GLIDING,
+        DROPPING
+    }
+
     private final Map<UUID, ItemStack> originalChestplates = new HashMap<>();
-    private final Map<UUID, Boolean> fireworkUsed = new HashMap<>();
-    private final Map<UUID, Boolean> elytraBroken = new HashMap<>();
-    private final Map<UUID, Boolean> moonSmashUsed = new HashMap<>();
+    private final Map<UUID, SkillState> playerSkillStates = new HashMap<>();
     private final Map<UUID, BukkitTask> timeoutTasks = new HashMap<>();
     private final Set<UUID> fallImmunityPlayers = new HashSet<>();
-
-    private final NamespacedKey fireworkKey;
-    private final NamespacedKey moonSmashKey;
 
     public ShadowWingsSkill() {
         super(
@@ -51,19 +51,15 @@ public class ShadowWingsSkill extends Skill {
                 Material.FEATHER,
                 60L
         );
-        this.fireworkKey = new NamespacedKey(plugin, "shadow_firework");
-        this.moonSmashKey = new NamespacedKey(plugin, "moon_smash_active");
     }
 
     @Override
     public boolean execute(Player player) {
         UUID uuid = player.getUniqueId();
-        removeElytra(player, false); // Clear previous state without granting immunity
+        removeElytra(player, false); // Clear previous state
 
         originalChestplates.put(uuid, player.getInventory().getChestplate());
-        fireworkUsed.put(uuid, false);
-        elytraBroken.put(uuid, false);
-        moonSmashUsed.put(uuid, false);
+        playerSkillStates.put(uuid, SkillState.WAITING_FOR_TAKEOFF);
 
         ItemStack elytra = new ItemStack(Material.ELYTRA);
         ItemMeta meta = elytra.getItemMeta();
@@ -80,12 +76,6 @@ public class ShadowWingsSkill extends Skill {
         elytra.setItemMeta(meta);
         player.getInventory().setChestplate(elytra);
 
-        ItemStack firework = new ItemStack(Material.FIREWORK_ROCKET);
-        ItemMeta fireworkMeta = firework.getItemMeta();
-        fireworkMeta.getPersistentDataContainer().set(fireworkKey, PersistentDataType.BYTE, (byte) 1);
-        firework.setItemMeta(fireworkMeta);
-        player.getInventory().addItem(firework);
-
         BukkitTask timeoutTask = plugin.getServer().getScheduler().runTaskLater(plugin, () -> removeElytra(player, true), 200L);
         timeoutTasks.put(uuid, timeoutTask);
 
@@ -100,39 +90,11 @@ public class ShadowWingsSkill extends Skill {
         if (timeoutTask != null) timeoutTask.cancel();
 
         player.getInventory().setChestplate(originalChestplates.remove(uuid));
-
-        for (ItemStack item : player.getInventory().getContents()) {
-            if (item != null && item.hasItemMeta()) {
-                if (item.getItemMeta().getPersistentDataContainer().has(fireworkKey, PersistentDataType.BYTE)) {
-                    player.getInventory().remove(item);
-                    break;
-                }
-            }
-        }
-
-        fireworkUsed.remove(uuid);
-        elytraBroken.remove(uuid);
-        moonSmashUsed.remove(uuid);
-        player.getPersistentDataContainer().remove(moonSmashKey);
+        playerSkillStates.remove(uuid);
 
         if (grantLingeringImmunity) {
             fallImmunityPlayers.add(uuid);
             plugin.getServer().getScheduler().runTaskLater(plugin, () -> fallImmunityPlayers.remove(uuid), 60L); // 3 seconds
-        }
-    }
-
-    @EventHandler
-    public void onPlayerInteract(PlayerInteractEvent event) {
-        Player player = event.getPlayer();
-        if (!originalChestplates.containsKey(player.getUniqueId())) return;
-
-        if (player.isGliding() && event.getAction().isRightClick()) {
-            ItemStack item = event.getItem();
-            if (item != null && item.getType() == Material.FIREWORK_ROCKET && item.hasItemMeta()) {
-                if (item.getItemMeta().getPersistentDataContainer().has(fireworkKey, PersistentDataType.BYTE)) {
-                    fireworkUsed.put(player.getUniqueId(), true);
-                }
-            }
         }
     }
 
@@ -142,11 +104,63 @@ public class ShadowWingsSkill extends Skill {
         UUID uuid = player.getUniqueId();
         if (!originalChestplates.containsKey(uuid)) return;
 
-        boolean usedFirework = fireworkUsed.getOrDefault(uuid, false);
-        boolean isBroken = elytraBroken.getOrDefault(uuid, false);
-
-        if (player.isOnGround() && (usedFirework || isBroken)) {
+        // Liquid check
+        Block blockIn = player.getLocation().getBlock();
+        if (blockIn.isLiquid()) {
+            if (blockIn.getType() == Material.WATER) {
+                player.sendMessage(miniMessage.deserialize("<blue>날개가 물에 젖어 펼칠 수 없게 되었습니다.</blue>"));
+            } else if (blockIn.getType() == Material.LAVA) {
+                player.sendMessage(miniMessage.deserialize("<red>날개가 불에 타 버렸습니다.</red>"));
+            }
             removeElytra(player, true);
+            return;
+        }
+
+        SkillState state = playerSkillStates.get(uuid);
+        if (state == null) return;
+
+        switch (state) {
+            case WAITING_FOR_TAKEOFF:
+                if (player.isGliding()) {
+                    playerSkillStates.put(uuid, SkillState.GLIDING);
+                }
+                break;
+            case GLIDING:
+                if (player.isOnGround()) {
+                    removeElytra(player, true);
+                }
+                break;
+            case DROPPING:
+                if (player.isOnGround()) {
+                    // Perform smash
+                    player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.5f, 0.5f);
+                    player.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, player.getLocation(), 800, 2, 0.5, 2, 1, org.bukkit.Bukkit.createBlockData(Material.GRASS_BLOCK));
+
+                    for (Entity entity : player.getNearbyEntities(5, 3, 5)) {
+                        if (entity instanceof LivingEntity && !entity.equals(player)) {
+                            LivingEntity target = (LivingEntity) entity;
+                            if (player.getLocation().distance(target.getLocation()) > 8) continue;
+
+                            if (target instanceof Player && gameManager.getTeamManager().getPlayerTeam((Player) target) == TeamType.APOSTLE_OF_MOON) {
+                                continue;
+                            }
+
+                            double damage = player.getFallDistance() * 0.2 - player.getLocation().distance(target.getLocation());
+                            if (damage > 0) {
+                                target.damage(Math.min(damage, 8.0), player);
+                            }
+
+                            Vector knockback = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5);
+                            target.setVelocity(knockback);
+                        }
+                    }
+                    // Smash is a final landing, so no lingering immunity needed from removeElytra
+                    removeElytra(player, false);
+                    // Grant temporary immunity for this landing tick
+                    fallImmunityPlayers.add(uuid);
+                    plugin.getServer().getScheduler().runTaskLater(plugin, () -> fallImmunityPlayers.remove(uuid), 1L);
+                }
+                break;
         }
     }
 
@@ -154,16 +168,7 @@ public class ShadowWingsSkill extends Skill {
     public void onPlayerItemBreak(PlayerItemBreakEvent event) {
         Player player = event.getPlayer();
         if (originalChestplates.containsKey(player.getUniqueId()) && event.getBrokenItem().getType() == Material.ELYTRA) {
-            elytraBroken.put(player.getUniqueId(), true);
-
-            for (ItemStack item : player.getInventory().getContents()) {
-                if (item != null && item.hasItemMeta()) {
-                    if (item.getItemMeta().getPersistentDataContainer().has(fireworkKey, PersistentDataType.BYTE)) {
-                        player.getInventory().remove(item);
-                        break;
-                    }
-                }
-            }
+            removeElytra(player, true);
         }
     }
 
@@ -171,62 +176,24 @@ public class ShadowWingsSkill extends Skill {
     public void onPlayerToggleSneak(PlayerToggleSneakEvent event) {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
+        SkillState state = playerSkillStates.get(uuid);
 
-        boolean isEligible = originalChestplates.containsKey(uuid);
-        boolean hasUsedSmash = moonSmashUsed.getOrDefault(uuid, true);
-        boolean isBroken = elytraBroken.getOrDefault(uuid, false);
-
-        if (!event.isSneaking() || player.isOnGround() || !isEligible || hasUsedSmash || isBroken) {
-            return;
+        if (event.isSneaking() && state == SkillState.GLIDING) {
+            playerSkillStates.put(uuid, SkillState.DROPPING);
+            if (player.isGliding()) {
+                player.setGliding(false);
+            }
+            player.setVelocity(new Vector(0, -10, 0));
         }
-
-        player.getPersistentDataContainer().set(moonSmashKey, PersistentDataType.BYTE, (byte) 1);
-        if (player.isGliding()) {
-            player.setGliding(false);
-        }
-        player.setVelocity(new Vector(0, -15, 0));
-        moonSmashUsed.put(uuid, true);
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGH)
     public void onEntityDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
         UUID uuid = player.getUniqueId();
 
         if (event.getCause() == EntityDamageEvent.DamageCause.FALL) {
-            if (player.getPersistentDataContainer().has(moonSmashKey, PersistentDataType.BYTE)) {
-                event.setCancelled(true);
-                player.getPersistentDataContainer().remove(moonSmashKey);
-
-                player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.5f, 0.5f);
-                player.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, player.getLocation(), 800, 2, 0.5, 2, 1, org.bukkit.Bukkit.createBlockData(Material.GRASS_BLOCK));
-
-                for (Entity entity : player.getNearbyEntities(5, 3, 5)) {
-                    if (entity instanceof LivingEntity && !entity.equals(player)) {
-                        LivingEntity target = (LivingEntity) entity;
-
-                        if (player.getLocation().distance(target.getLocation()) > 8) {
-                            continue;
-                        }
-
-                        if (target instanceof Player) {
-                            if (gameManager.getTeamManager().getPlayerTeam((Player) target) == TeamType.APOSTLE_OF_MOON) {
-                                continue;
-                            }
-                        }
-
-                        double damage = player.getFallDistance() * 0.2 - player.getLocation().distance(target.getLocation());
-                        if (damage > 0) {
-                            target.damage(Math.min(damage, 8.0), player);
-                        }
-
-                        Vector knockback = target.getLocation().toVector().subtract(player.getLocation().toVector()).normalize().multiply(1.5);
-                        target.setVelocity(knockback);
-                    }
-                }
-                // Smash is a final landing, so no lingering immunity
-                removeElytra(player, false);
-            } else if (originalChestplates.containsKey(uuid) || fallImmunityPlayers.contains(uuid)) {
+            if (fallImmunityPlayers.contains(uuid) || playerSkillStates.containsKey(uuid)) {
                 event.setCancelled(true);
             }
         }
@@ -241,11 +208,9 @@ public class ShadowWingsSkill extends Skill {
             }
         }
         originalChestplates.clear();
-        fireworkUsed.clear();
-        elytraBroken.clear();
+        playerSkillStates.clear();
         timeoutTasks.values().forEach(BukkitTask::cancel);
         timeoutTasks.clear();
-        moonSmashUsed.clear();
         fallImmunityPlayers.clear();
     }
 }
