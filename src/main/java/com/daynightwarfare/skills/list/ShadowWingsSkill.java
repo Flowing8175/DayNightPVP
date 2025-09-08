@@ -97,6 +97,7 @@ public class ShadowWingsSkill extends Skill {
         if (timeoutTask != null) timeoutTask.cancel();
 
         player.getInventory().setChestplate(originalChestplates.remove(uuid));
+        player.getInventory().remove(Material.FIREWORK_ROCKET);
         playerSkillStates.remove(uuid);
 
         if (grantLingeringImmunity) {
