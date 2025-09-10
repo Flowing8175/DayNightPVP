@@ -40,10 +40,10 @@ public class StealthSkill extends Skill {
 
     @Override
     public boolean execute(Player player) {
-        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 100, 1, true, false, true));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 100, 4, true, false, true));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 100, 0, true, false, true));
-        player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 100, 2, true, false, true));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.INVISIBILITY, 160, 1, true, false, true));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 160, 4, true, false, true));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 160, 0, true, false, true));
+        player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 160, 2, true, false, true));
 
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BREEZE_LAND, 1.0f, 0.75f);
 
@@ -70,7 +70,7 @@ public class StealthSkill extends Skill {
             }
         }
 
-        // After 3.5 seconds, unregister listener and show equipment again
+        // After 8 seconds, unregister listener and show equipment again
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             protocolManager.removePacketListener(packetAdapter);
             player.getWorld().playSound(player.getLocation(), Sound.ENTITY_BREEZE_LAND, 1.0f, 0.65f);
@@ -79,7 +79,7 @@ public class StealthSkill extends Skill {
                     showArmorForPlayer(player, onlinePlayer);
                 }
             }
-        }, 100L);
+        }, 160L);
     }
 
     private void hideArmorForPlayer(Player target, Player observer) {
