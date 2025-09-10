@@ -20,7 +20,7 @@ public class SolarFlareSkill extends Skill {
                 Arrays.asList("<gray>우클릭하여 눈을 멀게 하는 빛을 방출합니다.</gray>"),
                 TeamType.APOSTLE_OF_LIGHT,
                 Material.GLOWSTONE_DUST,
-                30L // Cooldown in seconds
+                20L // Cooldown in seconds
         );
     }
 

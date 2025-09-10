@@ -22,8 +22,8 @@ public class ShadowDashSkill extends Skill {
                 "<dark_purple>섀도우 대시</dark_purple>",
                 Arrays.asList("<gray>우클릭하여 적의 뒤로 순간이동합니다.</gray>"),
                 TeamType.APOSTLE_OF_MOON,
-                Material.OBSIDIAN,
-                25L
+                                Material.OBSIDIAN,
+                20L
         );
     }
 

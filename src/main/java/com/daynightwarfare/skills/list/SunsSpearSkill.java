@@ -32,8 +32,8 @@ public class SunsSpearSkill extends Skill {
                 "<gold>태양의 창</gold>",
                 Arrays.asList("<gray>우클릭하여 빛의 창을 던집니다.</gray>"),
                 TeamType.APOSTLE_OF_LIGHT,
-                Material.GOLDEN_SWORD,
-                20L
+                                Material.GOLDEN_SWORD,
+                15L
         );
         this.sunsSpearKey = new NamespacedKey(plugin, "suns_spear_id");
     }

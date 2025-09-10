@@ -33,7 +33,7 @@ public class StealthSkill extends Skill {
                 Collections.singletonList("<gray>Hold sneak for 3 seconds to gain a burst of speed and glowing.</gray>"),
                 TeamType.APOSTLE_OF_LIGHT,
                 null, // No item associated with this skill
-                18L // Cooldown in seconds
+                23L // Cooldown in seconds
         );
         this.protocolManager = ProtocolLibrary.getProtocolManager();
     }

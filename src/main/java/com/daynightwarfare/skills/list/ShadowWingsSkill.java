@@ -49,8 +49,8 @@ public class ShadowWingsSkill extends Skill {
                 "<aqua>그림자 날개</aqua>",
                 Arrays.asList("<gray>우클릭하여 날개를 펼쳐 일시적으로 비행합니다.</gray>"),
                 TeamType.APOSTLE_OF_MOON,
-                Material.FEATHER,
-                60L
+                                Material.FEATHER,
+                15L
         );
     }
 

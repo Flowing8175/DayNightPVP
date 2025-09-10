@@ -18,8 +18,8 @@ public class MoonsChainSkill extends Skill {
                 "<aqua>달의 사슬</aqua>",
                 Arrays.asList("<gray>우클릭하여 주변의 적을 속박합니다.</gray>"),
                 TeamType.APOSTLE_OF_MOON,
-                Material.FLOWER_BANNER_PATTERN,
-                40L
+                                Material.FLOWER_BANNER_PATTERN,
+                20L
         );
     }
 

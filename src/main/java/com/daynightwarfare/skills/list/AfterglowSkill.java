@@ -31,8 +31,8 @@ public class AfterglowSkill extends Skill implements Listener {
                 "<gold>잔광</gold>",
                 Arrays.asList("<gray>우클릭하여 주변의 적을 불태웁니다.</gray>"),
                 TeamType.APOSTLE_OF_LIGHT,
-                Material.TORCH,
-                45L
+                                Material.TORCH,
+                20L
         );
     }
 
