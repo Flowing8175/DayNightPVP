@@ -47,7 +47,7 @@ public class SunsSpearSkill extends Skill {
             player.sendMessage(miniMessage.deserialize("<gray>빛이 충분히 모이지 않아 온전한 창을 만들 수 없습니다.</gray>"));
         }
 
-        player.getWorld().playSound(player.getLocation(), Sound.ITEM_TRIDENT_THROW, 1.0f, 1.0f);
+        player.getWorld().playSound(player.getLocation(), Sound.ITEM_TRIDENT_THROW, 1.0f, isNight ? 0.5f : 1.0f);
         Vector velocity = player.getEyeLocation().getDirection().multiply(velocityMultiplier);
         Trident spear = player.launchProjectile(Trident.class, velocity);
         spear.setPickupStatus(AbstractArrow.PickupStatus.DISALLOWED);
