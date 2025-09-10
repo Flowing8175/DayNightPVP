@@ -14,10 +14,10 @@ survivor-locator:
 # Skill Cooldowns (in seconds)
 cooldowns:
   solar-flare: 20
-  suns-spear: 20
+  suns-spear: 15
   afterglow: 25
-  mirror-dash: 30
+  shadow-dash: 20
   moons-chain: 20
-  shadow-wings: 30
+  shadow-wings: 15
   moon-smash: 10
   stealth: 23
