@@ -148,7 +148,7 @@ public class ShadowWingsSkill extends Skill {
                     player.getWorld().playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 1.5f, 0.5f);
                     player.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE, player.getLocation(), 800, 2, 0.5, 2, 1, org.bukkit.Bukkit.createBlockData(Material.GRASS_BLOCK));
 
-                    for (Entity entity : player.getNearbyEntities(5, 3, 5)) {
+                    for (Entity entity : player.getNearbyEntities(8, 5, 8)) {
                         if (entity instanceof LivingEntity && !entity.equals(player)) {
                             LivingEntity target = (LivingEntity) entity;
                             if (player.getLocation().distance(target.getLocation()) > 8) continue;
@@ -157,7 +157,7 @@ public class ShadowWingsSkill extends Skill {
                                 continue;
                             }
 
-                            double damage = player.getFallDistance() * 0.5 - player.getLocation().distance(target.getLocation()) * 0.8;
+                            double damage = player.getFallDistance() * 0.4 - player.getLocation().distance(target.getLocation()) * 0.8;
                             if (damage > 0) {
                                 target.damage(Math.min(damage, 8.0), player);
                             }

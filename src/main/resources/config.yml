@@ -1,5 +1,5 @@
 # Grace period duration in minutes
-grace-period-minutes: 15
+grace-period-minutes: 20
 
 # Multiplier for the day/night cycle speed. 1.0 is default speed.
 day-night-cycle-multiplier: 4.0
@@ -20,4 +20,4 @@ cooldowns:
   moons-chain: 20
   shadow-wings: 30
   moon-smash: 10
-  stealth: 18
+  stealth: 23
