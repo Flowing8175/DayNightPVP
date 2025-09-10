@@ -73,7 +73,7 @@ public class AfterglowSkill extends Skill implements Listener {
                                 continue;
                             }
                         }
-                        target.damage(1.0, DamageSource.builder(DamageType.IN_FIRE).withCausingEntity(player).build());
+                        target.damage(1.0, DamageSource.builder(DamageType.IN_FIRE).withCausingEntity(player).withDirectEntity(player).build());
                     }
                 }
                 executions++;
